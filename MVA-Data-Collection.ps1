@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.1
+# Version: 1.0.2
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -92,11 +92,13 @@ Function GetVersion()
     TRY {
         # Version: 1.0.0 - 07-22-2025 - Base
         # Version: 1.0.1 - 08-14-2025 - Fixed region validation bug and added EC2 config json export
-        $Version = "1.0.1"
+        # Version: 1.0.2 - 08-15-2025 - Fixed region validation bug       
+        $Version = "1.0.2"
         Return $Version 
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: GetVersion() : $ErrorMsg" $True
+        Exit_Script -ErrorRaised $True
     }
 }
 
@@ -160,6 +162,7 @@ Function ExportData()
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: ExportData() : $ErrorMsg" $True
+        Exit_Script -ErrorRaised $True        
     }
 }
 
@@ -246,6 +249,7 @@ Function CleanUpEnvironment()
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: CleanUpEnvironment() : $ErrorMsg" $True
+        Exit_Script -ErrorRaised $True
     }
 }
 
@@ -647,6 +651,7 @@ Function LoadTSqlArray()
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: LoadTSqlArray() : $ErrorMsg" $True
+        Exit_Script -ErrorRaised $True
     }
 }
 
@@ -800,6 +805,7 @@ Function CollectConnectionInfoOnly()
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: CollectConnectionInfoOnly() : $ErrorMsg" $True
+        Exit_Script -ErrorRaised $True
     }
 }
 
@@ -821,15 +827,17 @@ Function ValidateRegions()
                     }
                 } CATCH {
                     IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
-                    LogActivity "** ERROR: Call to describe-regions --region-names $region had errors : $ErrorMsg" $True
+                    LogActivity "** ERROR: Call to Get-EC2Region -RegionName $region had errors : $ErrorMsg" $True
+                    $Pass = $False
                 }
             }
         }
-        Return $Pass
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: ValidateRegions() : $ErrorMsg" $True
+        $Pass = $False
     }
+    Return $Pass    
 } 
 
 Function ValidateEC2Info
@@ -857,6 +865,7 @@ Function ValidateEC2Info
                 } CATCH {
                     IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
                     LogActivity "** ERROR: Call to describe-instances --instance-ids $instance had errors : $ErrorMsg" $True
+                    $Pass = $False
                 }
 
                 TRY {
@@ -875,14 +884,16 @@ Function ValidateEC2Info
                 } CATCH {
                     IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
                     LogActivity "** ERROR: Unable to Identify IP addresses associated with Instances : $ErrorMsg" $True
+                    $Pass = $False
                 }
             }
         }
-        Return $Pass
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: ValidateEC2Info() : $ErrorMsg" $True
+        $Pass = $False
     }
+    Return $Pass
 } 
 
 Function ValidateRdsInfo()
@@ -924,14 +935,16 @@ Function ValidateRdsInfo()
                 } CATCH {
                     IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
                     LogActivity "** ERROR: Call to describe-db-instances --db-instance-identifier $rds had errors : $ErrorMsg" $True
+                    $Pass = $False
                 }
             }
         }
-        Return $Pass
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: ValidateRdsInfo() : $ErrorMsg" $True
+        $Pass = $False
     }
+    Return $Pass    
 } 
 
 Function ValidateFsxInfo()
@@ -959,14 +972,16 @@ Function ValidateFsxInfo()
                 } CATCH {
                     IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
                     LogActivity "** ERROR: Call to describe-file-systems --file-system-ids $fsx had errors : $ErrorMsg" $True
+                    $Pass = $False
                 }
             }
         }
-        Return $Pass
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: ValidateFsxInfo() : $ErrorMsg" $True
+        $Pass = $False
     }
+    Return $Pass    
 } 
 
 Function ValidateServerConnectivity()
@@ -1052,12 +1067,12 @@ Function ValidateServerConnectivity()
                 }
             }
         }
-
-        Return $Pass
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: ValidateServerConnectivity() : $ErrorMsg" $True
+        $Pass = $False
     }
+    Return $Pass
 } 
 
 Function GetServerIP
@@ -2293,25 +2308,23 @@ TRY {
     Clear-Host
     $Error.Clear()
 
-    main  -CollectCloudWatchData $True -IncludeAllMsgs $True  -AWSProfile evolve -ExportPath 'E:\Work\MVA-Data'
-
-    # Main -CollectConnectionsOnly $CollectConnectionsOnly        `
-    #     -ExportDacPacs $ExportDacPacs                           `
-    #     -CollectCloudWatchData $CollectCloudWatchData           `
-    #     -CollectTsqlData $CollectTsqlData                       `
-    #     -CleanUpEnvironment $CleanUpEnvironment                 `
-    #     -SqlServerConnectionTimeout $SqlServerConnectionTimeout `
-    #     -SqlServerQueryTimeout $SqlServerQueryTimeout           `
-    #     -CloudWatchCollectionPeriod $CloudWatchCollectionPeriod `
-    #     -IncludeAllMsgs $IncludeAllMsgs                         `
-    #     -ValidateResourcesOnly $ValidateResourcesOnly           `
-    #     -AWSProfile $AWSProfile                                 `
-    #     -UseSSOLogin $UseSSOLogin                               `
-    #     -SqlUser $SqlUser                                       `
-    #     -SqlPassword $SqlPassword                               `
-    #     -ExportPath $ExportPath                                 `
-    #     -FileNameDelimiter $FileNameDelimiter                   `
-    #     -DebugMode $DebugMode 
+    Main -CollectConnectionsOnly $CollectConnectionsOnly        `
+        -ExportDacPacs $ExportDacPacs                           `
+        -CollectCloudWatchData $CollectCloudWatchData           `
+        -CollectTsqlData $CollectTsqlData                       `
+        -CleanUpEnvironment $CleanUpEnvironment                 `
+        -SqlServerConnectionTimeout $SqlServerConnectionTimeout `
+        -SqlServerQueryTimeout $SqlServerQueryTimeout           `
+        -CloudWatchCollectionPeriod $CloudWatchCollectionPeriod `
+        -IncludeAllMsgs $IncludeAllMsgs                         `
+        -ValidateResourcesOnly $ValidateResourcesOnly           `
+        -AWSProfile $AWSProfile                                 `
+        -UseSSOLogin $UseSSOLogin                               `
+        -SqlUser $SqlUser                                       `
+        -SqlPassword $SqlPassword                               `
+        -ExportPath $ExportPath                                 `
+        -FileNameDelimiter $FileNameDelimiter                   `
+        -DebugMode $DebugMode 
 
 } CATCH {
     IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
