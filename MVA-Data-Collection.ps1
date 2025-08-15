@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.0 - 07-22-2025 - Base
+# Version: 1.0.1
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -90,7 +90,9 @@ param(
 Function GetVersion()
 {
     TRY {
-        $Version = "1.0.0"
+        # Version: 1.0.0 - 07-22-2025 - Base
+        # Version: 1.0.1 - 08-14-2025 - Fixed region validation bug and added EC2 config json export
+        $Version = "1.0.1"
         Return $Version 
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
@@ -810,7 +812,7 @@ Function ValidateRegions()
             IF (!([string]::IsNullOrWhiteSpace($region))) { 
                 TRY {
                     $output = ''
-                    $output = aws ec2 describe-regions --region-names $region 
+                    $output = Get-EC2Region -RegionName $region
                     IF (!([string]::IsNullOrWhiteSpace($output))) { 
                         IF ($ValidateResourcesOnly) { LogActivity "** INFO: Region $region has been validated" $True } ELSE { LogActivity "** INFO: Region $region has been validated" $False }
                     } Else {
@@ -1923,6 +1925,10 @@ Function Main
                     ForEach ($EC2 in $EC2s) {
                         $instanceId = $insTags = $instanceName = ""
                         $instanceId = $EC2.Instances.InstanceId
+
+                        $oFileEC2Config = "$ScriptRoot\Export\$datestamp\$FormattedServer\EC2-$instanceId.json"
+                        ($EC2.Instances | ConvertTo-JSON) | Out-File $oFileEC2Config -encoding ASCII
+
                         $insTags = $EC2.Instances.Tags
                         $insType = ($EC2.Instances.InstanceType).Value
                         IF ($insTags.Key -eq "Name") { 
@@ -2287,23 +2293,25 @@ TRY {
     Clear-Host
     $Error.Clear()
 
-    Main -CollectConnectionsOnly $CollectConnectionsOnly        `
-        -ExportDacPacs $ExportDacPacs                           `
-        -CollectCloudWatchData $CollectCloudWatchData           `
-        -CollectTsqlData $CollectTsqlData                       `
-        -CleanUpEnvironment $CleanUpEnvironment                 `
-        -SqlServerConnectionTimeout $SqlServerConnectionTimeout `
-        -SqlServerQueryTimeout $SqlServerQueryTimeout           `
-        -CloudWatchCollectionPeriod $CloudWatchCollectionPeriod `
-        -IncludeAllMsgs $IncludeAllMsgs                         `
-        -ValidateResourcesOnly $ValidateResourcesOnly           `
-        -AWSProfile $AWSProfile                                 `
-        -UseSSOLogin $UseSSOLogin                               `
-        -SqlUser $SqlUser                                       `
-        -SqlPassword $SqlPassword                               `
-        -ExportPath $ExportPath                                 `
-        -FileNameDelimiter $FileNameDelimiter                   `
-        -DebugMode $DebugMode 
+    main  -CollectCloudWatchData $True -IncludeAllMsgs $True  -AWSProfile evolve -ExportPath 'E:\Work\MVA-Data'
+
+    # Main -CollectConnectionsOnly $CollectConnectionsOnly        `
+    #     -ExportDacPacs $ExportDacPacs                           `
+    #     -CollectCloudWatchData $CollectCloudWatchData           `
+    #     -CollectTsqlData $CollectTsqlData                       `
+    #     -CleanUpEnvironment $CleanUpEnvironment                 `
+    #     -SqlServerConnectionTimeout $SqlServerConnectionTimeout `
+    #     -SqlServerQueryTimeout $SqlServerQueryTimeout           `
+    #     -CloudWatchCollectionPeriod $CloudWatchCollectionPeriod `
+    #     -IncludeAllMsgs $IncludeAllMsgs                         `
+    #     -ValidateResourcesOnly $ValidateResourcesOnly           `
+    #     -AWSProfile $AWSProfile                                 `
+    #     -UseSSOLogin $UseSSOLogin                               `
+    #     -SqlUser $SqlUser                                       `
+    #     -SqlPassword $SqlPassword                               `
+    #     -ExportPath $ExportPath                                 `
+    #     -FileNameDelimiter $FileNameDelimiter                   `
+    #     -DebugMode $DebugMode 
 
 } CATCH {
     IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
