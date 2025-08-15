@@ -1,7 +1,7 @@
-customername:ACME;
-region:us-east-1;
-server:EKINS-DELL\sql2012;EKINS-DELL\sql2022;EKINS-DELL\sql2019;EKINS-DELL\sql2017;EKINS-DELL\sql2016;EKINS-DELL\sql2014;vm1.lab.com,1433;vm2.lab.com;vm3.lab.com;vm4.lab.com;vm5\sql2008;vm5\sql2008r2;vm5\sql2014;
-instance: 
+customername:
+region:
+server:
+instance:
 rds: 
 fsx:
 database: 
