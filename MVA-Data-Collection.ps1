@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.3
+# Version: 1.0.3 
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -14,7 +14,7 @@
 # DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
-# Export Paths:
+# Export Paths :
 #   Log Files  - <InstallPath>\Export\$datestamp\Log\*.log"
 #   CSV Export - <InstallPath>\Export\Connections\*ServerName*\*.csv"
 #              - <InstallPath>\Export\$datestamp\*ServerName*\*.csv""
@@ -92,6 +92,7 @@ Function GetVersion()
     TRY {
      
         $Version = "1.0.3"
+        
         Return $Version 
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
