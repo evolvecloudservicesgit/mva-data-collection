@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.2
+# Version: 1.0.3
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -90,10 +90,8 @@ param(
 Function GetVersion()
 {
     TRY {
-        # Version: 1.0.0 - 07-22-2025 - Base
-        # Version: 1.0.1 - 08-14-2025 - Fixed region validation bug and added EC2 config json export
-        # Version: 1.0.2 - 08-15-2025 - Fixed region validation bug       
-        $Version = "1.0.2"
+     
+        $Version = "1.0.3"
         Return $Version 
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
@@ -852,11 +850,16 @@ Function ValidateEC2Info
                     ForEach ($region in $Regions) {
                         IF (!([string]::IsNullOrWhiteSpace($region))) {
                             IF ([string]::IsNullOrWhiteSpace($output)) {
-                                $output = aws ec2 describe-instances --instance-ids $instance --region $region
+                                #$output = aws ec2 describe-instances --instance-ids $instance --region $region
+                                TRY {
+                                    $output = Get-EC2Instance -InstanceId $instance -Region $region 
+                                } CATCH {
+                                    ## Ignore
+                                }
                             }
                         }
                     }
-                    IF ( (!([string]::IsNullOrWhiteSpace($output))) -and ( (($output | ConvertFrom-JSON).Reservations.Instances.InstanceId) -eq $instance )) { 
+                    IF ( (!([string]::IsNullOrWhiteSpace($output))) -and ( $output.Instances.InstanceId -eq $instance )) { 
                         IF ($ValidateResourcesOnly) { LogActivity "** INFO: Instance $instance has been validated" $True } ELSE { LogActivity "** INFO: Instance $instance has been validated" $False }
                     } Else {
                         $Pass = $False
@@ -869,14 +872,12 @@ Function ValidateEC2Info
                 }
 
                 TRY {
-                    $JSON =  ($output | ConvertFrom-JSON).Reservations.Instances
-
                     ## Locate Private IP for InstanceIDs
-                    $DnsName = $JSON.PrivateDnsName # $JSON.PublicDnsName  
+                    $DnsName = $output.Instances.PrivateDnsName  # $output.Instances.PublicDnsName  
                     LogActivity "** INFO: Instance $instance Private DNS Name Found: $DnsName" $False
 
-                    IF ($JSON.tags.Key -eq "Name") {
-                        $name = $JSON.tags | Where-Object { $_.Key -eq "Name" } | Select-Object -expand Value
+                    IF ($output.Instances.tags.Key -eq "Name") {
+                        $name = $output.Instances.tags | Where-Object { $_.Key -eq "Name" } | Select-Object -expand Value
                     } Else { 
                         $name = ''
                     }
@@ -1221,16 +1222,13 @@ Function IsRDS()
         [Bool]$IsRDS = $false
 
         If (!([string]::IsNullOrWhiteSpace($Server))) {
-
-            #IF ( ($RdsDetails.Values | Measure-Object).Count -gt 0 ) {
-                ForEach ($item in $RdsInstances) {
-                    IF (!([string]::IsNullOrWhiteSpace($item))) {
-                        IF ( $RdsDetails."$item".split("|")[0] -like "$Server*" ) {
-                            $IsRDS = $true
-                        }
+            ForEach ($item in $RdsInstances) {
+                IF (!([string]::IsNullOrWhiteSpace($item))) {
+                    IF ( $RdsDetails."$item".split("|")[0] -like "$Server*" ) {
+                        $IsRDS = $true
                     }
                 }
-           # }
+            }
         } 
         Return $IsRDS
     } CATCH {
@@ -1921,120 +1919,132 @@ Function Main
             $oFileRDS = "$($ExportPath)\RDS~~~~CloudWatch~~~~MetricData.csv"
             IF (Test-Path $oFileRDS) { Remove-Item $oFileRDS -Force }
 
-            "InstanceId, InstanceName, InstanceType, TimeStamp, Metric, AvgValue, MaxValue, SumValue" | Out-File $oFileEC2 -Append -encoding ASCII
-            "InstanceId, VolumeId, TimeStamp, Metric, AvgValue, MaxValue, SumValue" | Out-File $oFileEBS -Append -encoding ASCII
-            "FileSystemId, FileSystemName, FileSystemType, StorageCapacity, StorageType, TimeStamp, Metric, AvgValue, MaxValue, SumValue" | Out-File $oFileFSX -Append -encoding ASCII
-            "DBInstanceIdentifier, DBEngine, TimeStamp, Metric, AvgValue, MaxValue, SumValue" | Out-File $oFileRDS -Append -encoding ASCII
+            '"InstanceId"|"InstanceName"|"InstanceType"|"TimeStamp"|"Metric"|"AvgValue"|"MaxValue"|"SumValue"' | Out-File $oFileEC2 -Append -encoding ASCII
+            '"InstanceId"|"VolumeId"|"TimeStamp"|"Metric"|"AvgValue"|"MaxValue"|"SumValue"' | Out-File $oFileEBS -Append -encoding ASCII
+            '"FileSystemId"|"FileSystemName"|"FileSystemType"|"StorageCapacity"|"StorageType"|"TimeStamp"|"Metric"|"AvgValue"|"MaxValue"|"SumValue"' | Out-File $oFileFSX -Append -encoding ASCII
+            '"DBInstanceIdentifier"|"DBEngine"|"TimeStamp"|"Metric"|"AvgValue"|"MaxValue"|"SumValue"' | Out-File $oFileRDS -Append -encoding ASCII
 
             TRY {
-                IF (!([string]::IsNullOrWhiteSpace($EC2InstanceIds))) { 
-                    [System.Array]$InstanceIdArray = $Null
-                    ForEach ($InstanceId in $EC2InstanceIds) {
-                        IF (!([string]::IsNullOrWhiteSpace($InstanceId))) { 
-                            $InstanceIdArray += $InstanceId
-                        }
-                    }
-
-                    $EC2s = $Null
-                    $EC2s = Get-EC2Instance -InstanceId @($InstanceIdArray)
-                    ForEach ($EC2 in $EC2s) {
-                        $instanceId = $insTags = $instanceName = ""
-                        $instanceId = $EC2.Instances.InstanceId
-
-                        $oFileEC2Config = "$ScriptRoot\Export\$datestamp\$FormattedServer\EC2-$instanceId.json"
-                        ($EC2.Instances | ConvertTo-JSON) | Out-File $oFileEC2Config -encoding ASCII
-
-                        $insTags = $EC2.Instances.Tags
-                        $insType = ($EC2.Instances.InstanceType).Value
-                        IF ($insTags.Key -eq "Name") { 
-                            $instanceName =  $insTags | Where-Object { $_.Key -eq "Name" } | Select-Object -expand Value
-                        }
-                        $dimension = New-Object Amazon.CloudWatch.Model.Dimension
-                        $dimension.set_Name("InstanceId")
-                        $dimension.set_Value($instanceId)
-            
-                        $EC2MetricsMaxAvg = ("CPUUtilization").split(",")
-                        ForEach ($Ec2MetricAvg in $EC2MetricsMaxAvg) {
-                            $eTime =  Get-Date
-                            $metric = ($Ec2MetricAvg).Trim()
-                            ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                $eTime =  (Get-Date).AddDays(($i*-1))
-                                $sTime =  $eTime.AddDays(-1)
-                                $Data = Get-CWMetricStatistic -Namespace AWS/EC2 -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension
-                                ForEach($d in $Data.Datapoints){
-                                    $timeStamp = ""
-                                    $timeStamp = $d.TimeStamp
-                                    $AvgValue = $d.Average
-                                    $MaxValue = $d.Maximum
-                                    "$instanceId,$instanceName,$insType,$timeStamp,$metric,$AvgValue,$MaxValue,0" | Out-File $oFileEC2 -Append -encoding ASCII
-                                }
-                            }
-                            LogActivity "** INFO: Exported EC2 CW Metric $metric : $instanceId" $False
-                        }
-                
-                        $EC2MetricsSum = ("EBSReadOps, EBSWriteOps, EBSReadBytes, EBSWriteBytes").split(",")
-                        ForEach ($EC2MetricSum in $EC2MetricsSum) {
-                            $eTime =  Get-Date
-                            $metric = ($EC2MetricSum).Trim()
-                            ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                $eTime =  (Get-Date).AddDays(($i*-1))
-                                $sTime =  $eTime.AddDays(-1)
-                                $Data = Get-CWMetricStatistic -Namespace AWS/EC2 -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension
-                                ForEach($d in $Data.Datapoints){
-                                    $timeStamp = ""
-                                    $timeStamp = $d.TimeStamp
-                                    $SumValue = $d.Sum
-                                    "$instanceId,$instanceName,$insType,$timeStamp,$metric,0,0,$SumValue" | Out-File $oFileEC2 -Append -encoding ASCII
-                                }
-                            }
-                            LogActivity "** INFO: Exported EC2 CW Metric $metric : $instanceId" $False
-                        }
-            
-                        $EC2MetricsMax = ("NetworkIn, NetworkOut, NetworkPacketsIn, NetworkPacketsOut").split(",")
-                        ForEach ($EC2MetricMax in $EC2MetricsMax) {
-                            $eTime =  Get-Date
-                            $metric = ($EC2MetricMax).Trim()
-                            ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                $eTime =  (Get-Date).AddDays(($i*-1))
-                                $sTime =  $eTime.AddDays(-1)
-                                $Data = Get-CWMetricStatistic -Namespace AWS/EC2 -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Maximum") -Dimensions $dimension
-                                ForEach($d in $Data.Datapoints){
-                                    $timeStamp = ""
-                                    $timeStamp = $d.TimeStamp
-                                    $MaxValue = $d.Maximum
-                                    "$instanceId,$instanceName,$insType,$timeStamp,$metric,0,$MaxValue,0" | Out-File $oFileEC2 -Append -encoding ASCII
-                                }
-                            }
-                            LogActivity "** INFO: Exported EC2 CW Metric $metric : $instanceId" $False
-                        }
- 
-                        $EBS = $Null
-                        $EBS = (Get-EC2Volume) | Where-object {$_.Attachments.InstanceId -eq $instanceId} 
-                        ForEach ($volume in $EBS) {
-                            $dimension = New-Object Amazon.CloudWatch.Model.Dimension
-                            $dimension.Name = "VolumeId"
-                            $dimension.Value = $volume.Attachments.VolumeId
-
-                            $VolumeId = $volume.Attachments.VolumeId
-                            $EBSMetricsSum = ("VolumeReadOps, VolumeWriteOps, VolumeReadBytes, VolumeWriteBytes").split(",")
-                            ForEach ($EBSMetricSum in $EBSMetricsSum) {
-                                $eTime =  Get-Date
-                                $metric = ($EBSMetricSum).Trim()
-                                ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                    $eTime =  (Get-Date).AddDays(($i*-1))
-                                    $sTime =  $eTime.AddDays(-1)
-                                    $Data = Get-CWMetricStatistic -Namespace AWS/EBS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension
-                                    ForEach($d in $Data.Datapoints){
-                                        $timeStamp = ""
-                                        $timeStamp = $d.TimeStamp
-                                        $SumValue = $d.Sum
-                                        "$instanceId,$_.VolumeId,$timeStamp,$metric,0,0,$SumValue" | Out-File $oFileEBS -Append -encoding ASCII
+                ForEach ($region in $Regions) {
+                    IF (!([string]::IsNullOrWhiteSpace($region))) {
+                        [System.Array]$InstanceIdArray = $Null
+                        IF (!([string]::IsNullOrWhiteSpace($EC2InstanceIds))) { 
+                            ForEach ($InstanceId in $EC2InstanceIds) {
+                                IF (!([string]::IsNullOrWhiteSpace($InstanceId))) { 
+                                    $output = $Null
+                                    TRY {
+                                        $output = Get-EC2Instance -InstanceId $InstanceId -Region $region
+                                    } CATCH {
+                                        ## Ignore
+                                    }
+                                    IF (!([string]::IsNullOrWhiteSpace($output))) {
+                                        $InstanceIdArray += $InstanceId
                                     }
                                 }
-                                LogActivity "** INFO: Exported EBS CW Metric $metric : $instanceId : $VolumeId" $False
+                            }
+
+                            $EC2s = $Null
+                            $EC2s = Get-EC2Instance -InstanceId @($InstanceIdArray) -Region $region
+                            ForEach ($EC2 in $EC2s) {
+                                $instanceId = $insTags = $instanceName = ""
+                                $instanceId = $EC2.Instances.InstanceId
+
+                                $oFileEC2Config = "$ScriptRoot\Export\$datestamp\$FormattedServer\EC2-$instanceId.json"
+                                ($EC2.Instances | ConvertTo-JSON) | Out-File $oFileEC2Config -encoding ASCII
+
+                                $insTags = $EC2.Instances.Tags
+                                $insType = ($EC2.Instances.InstanceType).Value
+                                IF ($insTags.Key -eq "Name") { 
+                                    $instanceName =  $insTags | Where-Object { $_.Key -eq "Name" } | Select-Object -expand Value
+                                }
+                                $dimension = New-Object Amazon.CloudWatch.Model.Dimension
+                                $dimension.set_Name("InstanceId")
+                                $dimension.set_Value($instanceId)
+                    
+                                $EC2MetricsMaxAvg = ("CPUUtilization").split(",")
+                                ForEach ($Ec2MetricAvg in $EC2MetricsMaxAvg) {
+                                    $eTime =  Get-Date
+                                    $metric = ($Ec2MetricAvg).Trim()
+                                    ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                        $eTime =  (Get-Date).AddDays(($i*-1))
+                                        $sTime =  $eTime.AddDays(-1)
+                                        $Data = Get-CWMetricStatistic -Namespace AWS/EC2 -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension -Region $region
+                                        ForEach($d in $Data.Datapoints){
+                                            $timeStamp = ""
+                                            $timeStamp = $d.TimeStamp
+                                            $AvgValue = $d.Average
+                                            $MaxValue = $d.Maximum
+                                            '"'+$instanceId+'"|"'+$instanceName+'"|"'+$insType+'"|"'+$timeStamp+'"|"'+$metric+'"|"'+$AvgValue+'"|"'+$MaxValue+'"|"'+0+'"' | Out-File $oFileEC2 -Append -encoding ASCII
+                                        }
+                                    }
+                                    LogActivity "** INFO: Exported EC2 CW Metric $metric : $instanceId" $False
+                                }
+                        
+                                $EC2MetricsSum = ("EBSReadOps, EBSWriteOps, EBSReadBytes, EBSWriteBytes").split(",")
+                                ForEach ($EC2MetricSum in $EC2MetricsSum) {
+                                    $eTime =  Get-Date
+                                    $metric = ($EC2MetricSum).Trim()
+                                    ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                        $eTime =  (Get-Date).AddDays(($i*-1))
+                                        $sTime =  $eTime.AddDays(-1)
+                                        $Data = Get-CWMetricStatistic -Namespace AWS/EC2 -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                        ForEach($d in $Data.Datapoints){
+                                            $timeStamp = ""
+                                            $timeStamp = $d.TimeStamp
+                                            $SumValue = $d.Sum
+                                            '"'+$instanceId+'"|"'+$instanceName+'"|"'+$insType+'"|"'+$timeStamp+'"|"'+$metric+'"|"'+0+'"|"'+0+'"|"'+$SumValue+'"' | Out-File $oFileEC2 -Append -encoding ASCII
+                                        }
+                                    }
+                                    LogActivity "** INFO: Exported EC2 CW Metric $metric : $instanceId" $False
+                                }
+                    
+                                $EC2MetricsMax = ("NetworkIn, NetworkOut, NetworkPacketsIn, NetworkPacketsOut").split(",")
+                                ForEach ($EC2MetricMax in $EC2MetricsMax) {
+                                    $eTime =  Get-Date
+                                    $metric = ($EC2MetricMax).Trim()
+                                    ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                        $eTime =  (Get-Date).AddDays(($i*-1))
+                                        $sTime =  $eTime.AddDays(-1)
+                                        $Data = Get-CWMetricStatistic -Namespace AWS/EC2 -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Maximum") -Dimensions $dimension -Region $region
+                                        ForEach($d in $Data.Datapoints){
+                                            $timeStamp = ""
+                                            $timeStamp = $d.TimeStamp
+                                            $MaxValue = $d.Maximum
+                                            '"'+$instanceId+'"|"'+$instanceName+'"|"'+$insType+'"|"'+$timeStamp+'"|"'+$metric+'"|"'+0+'"|"'+$MaxValue+'"|"'+0+'"' | Out-File $oFileEC2 -Append -encoding ASCII
+                                        }
+                                    }
+                                    LogActivity "** INFO: Exported EC2 CW Metric $metric : $instanceId" $False
+                                }
+        
+                                $EBS = $Null
+                                $EBS = (Get-EC2Volume -Region $region) | Where-object {$_.Attachments.InstanceId -eq $instanceId} 
+                                ForEach ($volume in $EBS) {
+                                    $dimension = New-Object Amazon.CloudWatch.Model.Dimension
+                                    $dimension.Name = "VolumeId"
+                                    $dimension.Value = $volume.Attachments.VolumeId
+
+                                    $VolumeId = $volume.Attachments.VolumeId
+                                    $EBSMetricsSum = ("VolumeReadOps, VolumeWriteOps, VolumeReadBytes, VolumeWriteBytes").split(",")
+                                    ForEach ($EBSMetricSum in $EBSMetricsSum) {
+                                        $eTime =  Get-Date
+                                        $metric = ($EBSMetricSum).Trim()
+                                        ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                            $eTime =  (Get-Date).AddDays(($i*-1))
+                                            $sTime =  $eTime.AddDays(-1)
+                                            $Data = Get-CWMetricStatistic -Namespace AWS/EBS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                            ForEach($d in $Data.Datapoints){
+                                                $timeStamp = ""
+                                                $timeStamp = $d.TimeStamp
+                                                $SumValue = $d.Sum
+                                                '"'+$instanceId+'"|"'+$VolumeId+'"|"'+$timeStamp+'"|"'+$metric+'"|"'+0+'"|"'+0+'"|"'+$SumValue+'"' | Out-File $oFileEBS -Append -encoding ASCII
+                                            }
+                                        }
+                                        LogActivity "** INFO: Exported EBS CW Metric $metric : $instanceId : $VolumeId" $False
+                                    }
+                                }
+
                             }
                         }
-
                     }
                 }
             } CATCH {
@@ -2042,156 +2052,170 @@ Function Main
                 LogActivity "** ERROR: Exporting EC2 CW Metrics : $instanceId : $ErrorMsg" $True
             }
 
+            ## FSx Cloudwatch Data Collection
+            #1st Gen - one dimension, FileSystemId
+            #2nd Gen -  two dimensions, FileSystemId and FileServer
             TRY {
-                IF (!([string]::IsNullOrWhiteSpace($FSxFileSystems))) { 
-                    [System.Array]$FSXFileSystemArray = $Null
-                    ForEach ($FSxFileSystemsId in $FSxFileSystems) {
-                        IF (!([string]::IsNullOrWhiteSpace($FSxFileSystemsId))) { 
-                            $FSXFileSystemArray += $FSxFileSystemsId
-                        }
-                    }
 
-                    $FSxSystems = $Null
-                    $FSxSystems = Get-FSXFileSystem -FileSystemId @($FSXFileSystemArray)
-                    ForEach ($FSx in $FSxSystems) {
-                        $FileSystemId = $FileSystemType = $StorageCapacity = $StorageType = $Tags = $FileSystemName = ""
-                        $FileSystemId = $FSx.FileSystemId
-                        $FileSystemType = $FSx.FileSystemType
-                        $StorageCapacity = $FSx.StorageCapacity
-                        $StorageType = $FSx.StorageType
-                        $Tags = $FSx.Tags
-                        $FSxWindowsConfig = $FSx.WindowsConfiguration | ConvertTo-JSON
-                        $FSxOntapConfig = $FSx.OntapConfiguration | ConvertTo-JSON
-
-                        if($Tags.Key -eq "Name"){$FileSystemName =  $Tags | Where-Object { $_.Key -eq "Name" } | Select-Object -expand Value}
-
-                        $dimension = New-Object Amazon.CloudWatch.Model.Dimension
-                        $dimension.set_Name("FileSystemId")
-                        $dimension.set_Value($FileSystemId)
- 
-                        Switch ($FileSystemType) {
-                            "Windows" {
-                                $oFileFSxConfig = "$ScriptRoot\Export\$datestamp\$FormattedServer\FSx-$FileSystemId.json"
-                                $FSxWindowsConfig | Out-File $oFileFSxConfig -encoding ASCII
-
-                                $FSxMetricsSum = ("DataReadBytes, DataWriteBytes, DataWriteOperations, DataReadOperations, MetadataOperations").split(",")
-                                ForEach ($FSxMetricSum in $FSxMetricsSum) {
-                                    $eTime =  Get-Date
-                                    $metric = ($FSxMetricSum).Trim()
-                                    ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                        $eTime =  (Get-Date).AddDays(($i*-1))
-                                        $sTime =  $eTime.AddDays(-1)
-                                        $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension
-                                        ForEach($d in $Data.Datapoints) {
-                                            $timeStamp = ""
-                                            $timeStamp = $d.TimeStamp
-                                            $SumValue = $d.Sum
-                                            "$FileSystemId,$FileSystemName,$FileSystemType,$StorageCapacity,$StorageType,$timeStamp,$metric,0,0,$SumValue" | Out-File $oFileFSX -Append -encoding ASCII
-                                        }
+                ForEach ($region in $Regions) {
+                    IF (!([string]::IsNullOrWhiteSpace($region))) {
+                        [System.Array]$FSXFileSystemArray = $Null
+                        IF (!([string]::IsNullOrWhiteSpace($FSxFileSystems))) { 
+                            ForEach ($FSxFileSystemsId in $FSxFileSystems) {
+                                IF (!([string]::IsNullOrWhiteSpace($FSxFileSystemsId))) { 
+                                    $output = $Null
+                                    TRY {
+                                        $output = Get-FSXFileSystem -FileSystemId $FSxFileSystemsId -Region $region
+                                    } CATCH {
+                                        ## Ignore
                                     }
-                                    LogActivity "** INFO: Exported FSx CW Metric $metric : $FileSystemId" $False
-                                }
-
-                                $FSxMetricsMaxAvg = ("ClientConnections").split(",")
-                                ForEach ($FSxMetricMaxAvg in $FSxMetricsMaxAvg) {
-                                    $eTime =  Get-Date
-                                    $metric = ($FSxMetricMaxAvg).Trim()
-                                    ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                        $eTime =  (Get-Date).AddDays(($i*-1))
-                                        $sTime =  $eTime.AddDays(-1)
-                                        $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension
-                                        ForEach($d in $Data.Datapoints) {
-                                            $timeStamp = ""
-                                            $timeStamp = $d.TimeStamp
-                                            $AvgValue = $d.Average
-                                            $MaxValue = $d.Maximum
-                                            #$metric = ($_).Trim()
-                                            "$FileSystemId,$FileSystemName,$FileSystemType,$StorageCapacity,$StorageType,$timeStamp,$metric,$AvgValue,$MaxValue,0" | Out-File $oFileFSX -Append -encoding ASCII
-                                        }
-                                        LogActivity "** INFO: Exported FSx CW Metric $metric : $FileSystemId" $False
+                                    IF (!([string]::IsNullOrWhiteSpace($output))) {
+                                        $FSXFileSystemArray += $FSxFileSystemsId
                                     }
                                 }
-                            }
-                            "ONTAP" {
-                                $oFileFSxConfig = "$ScriptRoot\Export\$datestamp\$FormattedServer\FSx-$FileSystemId.json"
-                                $FSxOntapConfig | Out-File $oFileFSxConfig -encoding ASCII
-           
-                                IF (($FSxOntapConfig | ConvertFrom-JSON).DeploymentType.Value -like "*AZ_1") {
-                                    ## Gen 1 Ontap
-                                    $FSxGen = 1
-                                } Else {
-                                    ## Gen 2 Ontap
-                                    $FSxGen = 2
-                                }
-           
-                                $FSxOntapConfig
-                                $FSxMetricsSum = ("NetworkSentBytes,NetworkReceivedBytes,DataReadBytes,DataWriteBytes,DataReadOperations,DataWriteOperations,MetadataOperations,DataReadOperationTime,DataWriteOperationTime,DiskReadBytes,DiskWriteBytes,DiskReadOperations,DiskWriteOperation").split(",")
-                                ForEach ($FSxMetricSum in $FSxMetricsSum) {
-                                    $eTime =  Get-Date
-                                    $metric = ($FSxMetricSum).Trim()
-                                    ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                        $eTime =  (Get-Date).AddDays(($i*-1))
-                                        $sTime =  $eTime.AddDays(-1)
-                                        $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension
-                                        ForEach($d in $Data.Datapoints) {
-                                            $timeStamp = ""
-                                            $timeStamp = $d.TimeStamp
-                                            $SumValue = $d.Sum
-                                            "$FileSystemId,$FileSystemName,$FileSystemType,$StorageCapacity,$StorageType,$timeStamp,$metric,0,0,$SumValue" | Out-File $oFileFSX -Append -encoding ASCII
-                                        }
-                                    }
-                                    LogActivity "** INFO: Exported FSx CW Metric $metric : $FileSystemId" $False
-                                }
-           
-                                $FSxMetricsMaxAvg = ("FileServerCacheHitRatio").split(",")
-                                ForEach ($FSxMetricMaxAvg in $FSxMetricsMaxAvg) {
-                                    $eTime =  Get-Date
-                                    $metric = ($FSxMetricMaxAvg).Trim()
-                                    ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                        $eTime =  (Get-Date).AddDays(($i*-1))
-                                        $sTime =  $eTime.AddDays(-1)
-                                        $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension
-                                        ForEach($d in $Data.Datapoints) {
-                                            $timeStamp = ""
-                                            $timeStamp = $d.TimeStamp
-                                            $AvgValue = $d.Average
-                                            $MaxValue = $d.Maximum
-                                            #$metric = ($_).Trim()
-                                            "$FileSystemId,$FileSystemName,$FileSystemType,$StorageCapacity,$StorageType,$timeStamp,$metric,$AvgValue,$MaxValue,0" | Out-File $oFileFSX -Append -encoding ASCII
-                                        }
-                                    }
-                                    LogActivity "** INFO: Exported FSx CW Metric $metric : $FileSystemId" $False
-                                }
+                            }                
 
-                                #Get-FSXVolume -FileSystemId $FileSystemId | ForEach-Object {   ## -VolumeId $FileSystemId
-                                #
-                                #    $VolumeId = $_.VolumeId
-                                #
-                                #    $oFileFSxVolume = "$($ExportPath)\FSx-$FileSystemId-$VolumeId.json"
-                                #    ($_.OntapConfiguration | ConvertTo-JSON) | Out-File $oFileFSxVolume -encoding ASCII
-                                #
-                                #    $VolumeDimension = New-Object Amazon.CloudWatch.Model.Dimension
-                                #    $VolumeDimension.set_Name("VolumeId")
-                                #    $VolumeDimension.set_Value($VolumeId)
-                                #
-                                #    $FSxVolumeMetricsSum = ("DataReadBytes,DataWriteBytes,DataReadOperations,DataWriteOperations,MetadataOperations,DataReadOperationTime,DataWriteOperationTime,MetadataOperationTime").split(",")
-                                #    $FSxVolumeMetricsSum | % {
-                                #        $eTime =  Get-Date
-                                #        $metric = ($_).Trim()
-                                #        ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                #            $eTime =  (Get-Date).AddDays(($i*-1))
-                                #            $sTime =  $eTime.AddDays(-1)
-                                #            $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions @($dimension,$VolumeDimension)
-                                #            ForEach($d in $Data.Datapoints) {
-                                #                $timeStamp = $utlValue = ""
-                                #                $timeStamp = $d.TimeStamp
-                                #                $SumValue = $d.Sum
-                                #                "$FileSystemId,$FileSystemName,$FileSystemType,$StorageCapacity,$StorageType,$timeStamp,$metric,0,0,$SumValue" | Out-File $oFileFSX -Append -encoding ASCII
-                                #            }
-                                #            LogActivity "** INFO: Exported FSx CW Metric $metric : $FileSystemId" $False
-                                #        }
-                                #    }
-                                #}
+                            $FSxSystems = $Null
+                            $FSxSystems = Get-FSXFileSystem -FileSystemId @($FSXFileSystemArray) -Region $region
+                            ForEach ($FSx in $FSxSystems) {
+                                $FileSystemId = $FileSystemType = $StorageCapacity = $StorageType = $Tags = $FileSystemName = ""
+                                $FileSystemId = $FSx.FileSystemId
+                                $FileSystemType = $FSx.FileSystemType
+                                $StorageCapacity = $FSx.StorageCapacity
+                                $StorageType = $FSx.StorageType
+                                $Tags = $FSx.Tags
+                                $FSxWindowsConfig = $FSx.WindowsConfiguration | ConvertTo-JSON
+                                $FSxOntapConfig = $FSx.OntapConfiguration | ConvertTo-JSON
+
+                                if($Tags.Key -eq "Name"){$FileSystemName =  $Tags | Where-Object { $_.Key -eq "Name" } | Select-Object -expand Value}
+
+                                $dimension = New-Object Amazon.CloudWatch.Model.Dimension
+                                $dimension.set_Name("FileSystemId")
+                                $dimension.set_Value($FileSystemId)
+        
+                                Switch ($FileSystemType) {
+                                    "Windows" {
+                                        $oFileFSxConfig = "$ScriptRoot\Export\$datestamp\$FormattedServer\FSx-$FileSystemId.json"
+                                        $FSxWindowsConfig | Out-File $oFileFSxConfig -encoding ASCII
+
+                                        $FSxMetricsSum = ("DataReadBytes, DataWriteBytes, DataWriteOperations, DataReadOperations, MetadataOperations").split(",")
+                                        ForEach ($FSxMetricSum in $FSxMetricsSum) {
+                                            $eTime =  Get-Date
+                                            $metric = ($FSxMetricSum).Trim()
+                                            ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                                $eTime =  (Get-Date).AddDays(($i*-1))
+                                                $sTime =  $eTime.AddDays(-1)
+                                                $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                                ForEach($d in $Data.Datapoints) {
+                                                    $timeStamp = ""
+                                                    $timeStamp = $d.TimeStamp
+                                                    $SumValue = $d.Sum
+                                                    '"'+$FileSystemId+'"|"'+$FileSystemName+'"|"'+$FileSystemType+'"|"'+$StorageCapacity+'"|"'+$StorageType+'"|"'+$timeStamp+'"|"'+$metric+'"|"'+0+'"|"'+0+'"|"'+$SumValue+'"' | Out-File $oFileFSX -Append -encoding ASCII
+                                                }
+                                            }
+                                            LogActivity "** INFO: Exported FSx CW Metric $metric : $FileSystemId" $False
+                                        }
+
+                                        $FSxMetricsMaxAvg = ("ClientConnections").split(",")
+                                        ForEach ($FSxMetricMaxAvg in $FSxMetricsMaxAvg) {
+                                            $eTime =  Get-Date
+                                            $metric = ($FSxMetricMaxAvg).Trim()
+                                            ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                                $eTime =  (Get-Date).AddDays(($i*-1))
+                                                $sTime =  $eTime.AddDays(-1)
+                                                $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension -Region $region
+                                                ForEach($d in $Data.Datapoints) {
+                                                    $timeStamp = ""
+                                                    $timeStamp = $d.TimeStamp
+                                                    $AvgValue = $d.Average
+                                                    $MaxValue = $d.Maximum
+                                                    '"'+$FileSystemId+'"|"'+$FileSystemName+'"|"'+$FileSystemType+'"|"'+$StorageCapacity+'"|"'+$StorageType+'"|"'+$timeStamp+'"|"'+$metric+'"|"'+$AvgValue+'"|"'+$MaxValue+'"|"'+0+'"' | Out-File $oFileFSX -Append -encoding ASCII
+                                                }
+                                                LogActivity "** INFO: Exported FSx CW Metric $metric : $FileSystemId" $False
+                                            }
+                                        }
+                                    }
+                                    "ONTAP" {
+                                        $oFileFSxConfig = "$ScriptRoot\Export\$datestamp\$FormattedServer\FSx-$FileSystemId.json"
+                                        $FSxOntapConfig | Out-File $oFileFSxConfig -encoding ASCII
+                
+                                        IF (($FSxOntapConfig | ConvertFrom-JSON).DeploymentType.Value -like "*AZ_1") {
+                                            ## Gen 1 Ontap
+                                            $FSxGen = 1
+                                        } Else {
+                                            ## Gen 2 Ontap
+                                            $FSxGen = 2
+                                        }
+                
+                                        $FSxOntapConfig
+                                        $FSxMetricsSum = ("NetworkSentBytes,NetworkReceivedBytes,DataReadBytes,DataWriteBytes,DataReadOperations,DataWriteOperations,MetadataOperations,DataReadOperationTime,DataWriteOperationTime,DiskReadBytes,DiskWriteBytes,DiskReadOperations,DiskWriteOperation").split(",")
+                                        ForEach ($FSxMetricSum in $FSxMetricsSum) {
+                                            $eTime =  Get-Date
+                                            $metric = ($FSxMetricSum).Trim()
+                                            ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                                $eTime =  (Get-Date).AddDays(($i*-1))
+                                                $sTime =  $eTime.AddDays(-1)
+                                                $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                                ForEach($d in $Data.Datapoints) {
+                                                    $timeStamp = ""
+                                                    $timeStamp = $d.TimeStamp
+                                                    $SumValue = $d.Sum
+                                                    '"'+$FileSystemId+'"|"'+$FileSystemName+'"|"'+$FileSystemType+'"|"'+$StorageCapacity+'"|"'+$StorageType+'"|"'+$timeStamp+'"|"'+$metric+'"|"'+0+'"|"'+0+'"|"'+$SumValue+'"' | Out-File $oFileFSX -Append -encoding ASCII
+                                                }
+                                            }
+                                            LogActivity "** INFO: Exported FSx CW Metric $metric : $FileSystemId" $False
+                                        }
+                
+                                        $FSxMetricsMaxAvg = ("FileServerCacheHitRatio").split(",")
+                                        ForEach ($FSxMetricMaxAvg in $FSxMetricsMaxAvg) {
+                                            $eTime =  Get-Date
+                                            $metric = ($FSxMetricMaxAvg).Trim()
+                                            ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                                $eTime =  (Get-Date).AddDays(($i*-1))
+                                                $sTime =  $eTime.AddDays(-1)
+                                                $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension -Region $region
+                                                ForEach($d in $Data.Datapoints) {
+                                                    $timeStamp = ""
+                                                    $timeStamp = $d.TimeStamp
+                                                    $AvgValue = $d.Average
+                                                    $MaxValue = $d.Maximum
+                                                    '"'+$FileSystemId+'"|"'+$FileSystemName+'"|"'+$FileSystemType+'"|"'+$StorageCapacity+'"|"'+$StorageType+'"|"'+$timeStamp+'"|"'+$metric+'"|"'+$AvgValue+'"|"'+$MaxValue+'"|"'+0+'"' | Out-File $oFileFSX -Append -encoding ASCII
+                                                }
+                                            }
+                                            LogActivity "** INFO: Exported FSx CW Metric $metric : $FileSystemId" $False
+                                        }
+
+                                        #Get-FSXVolume -FileSystemId $FileSystemId | ForEach-Object {   ## -VolumeId $FileSystemId
+                                        #
+                                        #    $VolumeId = $_.VolumeId
+                                        #
+                                        #    $oFileFSxVolume = "$($ExportPath)\FSx-$FileSystemId-$VolumeId.json"
+                                        #    ($_.OntapConfiguration | ConvertTo-JSON) | Out-File $oFileFSxVolume -encoding ASCII
+                                        #
+                                        #    $VolumeDimension = New-Object Amazon.CloudWatch.Model.Dimension
+                                        #    $VolumeDimension.set_Name("VolumeId")
+                                        #    $VolumeDimension.set_Value($VolumeId)
+                                        #
+                                        #    $FSxVolumeMetricsSum = ("DataReadBytes,DataWriteBytes,DataReadOperations,DataWriteOperations,MetadataOperations,DataReadOperationTime,DataWriteOperationTime,MetadataOperationTime").split(",")
+                                        #    $FSxVolumeMetricsSum | % {
+                                        #        $eTime =  Get-Date
+                                        #        $metric = ($_).Trim()
+                                        #        ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                        #            $eTime =  (Get-Date).AddDays(($i*-1))
+                                        #            $sTime =  $eTime.AddDays(-1)
+                                        #            $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions @($dimension,$VolumeDimension) -Region $region
+                                        #            ForEach($d in $Data.Datapoints) {
+                                        #                $timeStamp = $utlValue = ""
+                                        #                $timeStamp = $d.TimeStamp
+                                        #                $SumValue = $d.Sum
+                                        #              DElimuter  "$FileSystemId,$FileSystemName,$FileSystemType,$StorageCapacity,$StorageType,$timeStamp,$metric,0,0,$SumValue" | Out-File $oFileFSX -Append -encoding ASCII
+                                        #            }
+                                        #            LogActivity "** INFO: Exported FSx CW Metric $metric : $FileSystemId" $False
+                                        #        }
+                                        #    }
+                                        #}
+                                    }
+                                }
                             }
                         }
                     }
@@ -2201,86 +2225,98 @@ Function Main
                 LogActivity "** ERROR: Exporting FSx CW Metrics : $FileSystemId : $ErrorMsg" $True
             }
 
-            #1st Gen - one dimension, FileSystemId
-            #2nd Gen -  two dimensions, FileSystemId and FileServer
- 
+            ## RDS Cloudwatch Data Collection
             TRY {
-                IF (!([string]::IsNullOrWhiteSpace($RdsInstances))) { 
-                    [System.Array]$RdsFilterValues = $Null
-                    ForEach ($Rds in $RdsInstances) {
-                        IF (!([string]::IsNullOrWhiteSpace($Rds))) { 
-                            $RdsFilterValues += $Rds
-                        }
-                    }
-
-                    $RDSFilter = @{name="db-instance-id"; values=$RdsFilterValues}
-                
-                    $RDSInstances = Get-RDSDBInstance -Filter $RDSFilter
-                    ForEach ($RDSInstance in $RDSInstances) {
-                        $DBInstanceIdentifier = $RDSInstance.DBInstanceIdentifier
-                        $DBEngine = $RDSInstance.Engine
-
-                        IF ($DBEngine -like "sqlserver*") {
-                            $oFileRDSConfig = "$ScriptRoot\Export\$datestamp\$FormattedServer\RDS-$DBInstanceIdentifier.json"
-                            ($RDSInstance | ConvertTo-JSON) | Out-File $oFileRDSConfig -encoding ASCII
-
-                            $dimension = New-Object Amazon.CloudWatch.Model.Dimension
-                            $dimension.Name = "DBInstanceIdentifier"
-                            $dimension.Value = $DBInstanceIdentifier
-
-                            $RDSMetricsSum = ("ReadThroughput,WriteThroughput,ReadIOPS,WriteIOPS,ReadLatency,WriteLatency").split(",")
-                            ForEach ($RDSMetricSum in $RDSMetricsSum) {
-                                $eTime =  Get-Date
-                                $metric = ($RDSMetricSum).Trim()
-                                ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                    $eTime =  (Get-Date).AddDays(($i*-1))
-                                    $sTime =  $eTime.AddDays(-1)
-                                    $Data = Get-CWMetricStatistic -Namespace AWS/RDS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension
-                                    ForEach($d in $Data.Datapoints){
-                                        $timeStamp = ""
-                                        $timeStamp = $d.TimeStamp
-                                        $SumValue = $d.Sum
-                                        "$DBInstanceIdentifier,$DBEngine,$timeStamp,$metric,0,0,$SumValue" | Out-File $oFileRDS -Append -encoding ASCII
+                ForEach ($region in $Regions) {
+                    IF (!([string]::IsNullOrWhiteSpace($region))) {
+                        [System.Array]$RdsFilterValues = $Null
+                        IF (!([string]::IsNullOrWhiteSpace($RdsInstances))) { 
+                            ForEach ($Rds in $RdsInstances) {
+                                IF (!([string]::IsNullOrWhiteSpace($Rds))) { 
+                                    $output = $Null
+                                    TRY {
+                                        $output = Get-RDSDBInstance -DBInstanceIdentifier $Rds -Region $region
+                                    } CATCH {
+                                        ## Ignore
+                                    }
+                                    IF (!([string]::IsNullOrWhiteSpace($output))) {
+                                        $RdsFilterValues += $Rds
                                     }
                                 }
-                                LogActivity "** INFO: Exported RDS CW Metric $metric : $DBInstanceIdentifier" $False
-                            }
+                            }              
 
-                            $RDSMetricsAvgMax = ("DatabaseConnections,CPUUtilization").split(",")
-                            ForEach ($RDSMetricAvgMax in $RDSMetricsAvgMax) {                                
-                                $eTime =  Get-Date
-                                $metric = ($RDSMetricAvgMax).Trim()
-                                ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                    $eTime =  (Get-Date).AddDays(($i*-1))
-                                    $sTime =  $eTime.AddDays(-1)
-                                    $Data = Get-CWMetricStatistic -Namespace AWS/RDS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension
-                                    ForEach($d in $Data.Datapoints){
-                                        $timeStamp = ""
-                                        $timeStamp = $d.TimeStamp
-                                        $AvgValue = $d.Average
-                                        $MaxValue = $d.Maximum
-                                        "$DBInstanceIdentifier,$DBEngine,$timeStamp,$metric,$AvgValue,$MaxValue,0" | Out-File $oFileRDS -Append -encoding ASCII
+                            IF (!([string]::IsNullOrWhiteSpace($RdsFilterValues))) {
+                                $RDSFilter = @{name="db-instance-id"; values=$RdsFilterValues}
+                            
+                                $RDSInstances = Get-RDSDBInstance -Filter $RDSFilter -Region $region 
+                                ForEach ($RDSInstance in $RDSInstances) {
+                                    $DBInstanceIdentifier = $RDSInstance.DBInstanceIdentifier
+                                    $DBEngine = $RDSInstance.Engine
+
+                                    IF ($DBEngine -like "sqlserver*") {
+                                        $oFileRDSConfig = "$ScriptRoot\Export\$datestamp\$FormattedServer\RDS-$DBInstanceIdentifier.json"
+                                        ($RDSInstance | ConvertTo-JSON) | Out-File $oFileRDSConfig -encoding ASCII
+
+                                        $dimension = New-Object Amazon.CloudWatch.Model.Dimension
+                                        $dimension.Name = "DBInstanceIdentifier"
+                                        $dimension.Value = $DBInstanceIdentifier
+
+                                        $RDSMetricsSum = ("ReadThroughput,WriteThroughput,ReadIOPS,WriteIOPS,ReadLatency,WriteLatency").split(",")
+                                        ForEach ($RDSMetricSum in $RDSMetricsSum) {
+                                            $eTime =  Get-Date
+                                            $metric = ($RDSMetricSum).Trim()
+                                            ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                                $eTime =  (Get-Date).AddDays(($i*-1))
+                                                $sTime =  $eTime.AddDays(-1)
+                                                $Data = Get-CWMetricStatistic -Namespace AWS/RDS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                                ForEach($d in $Data.Datapoints){
+                                                    $timeStamp = ""
+                                                    $timeStamp = $d.TimeStamp
+                                                    $SumValue = $d.Sum
+                                                    '"'+$DBInstanceIdentifier+'"|"'+$DBEngine+'"|"'+$timeStamp+'"|"'+$metric+'"|"'+0+'"|"'+0+'"|"'+$SumValue+'"' | Out-File $oFileRDS -Append -encoding ASCII
+                                                }
+                                            }
+                                            LogActivity "** INFO: Exported RDS CW Metric $metric : $DBInstanceIdentifier" $False
+                                        }
+
+                                        $RDSMetricsAvgMax = ("DatabaseConnections,CPUUtilization").split(",")
+                                        ForEach ($RDSMetricAvgMax in $RDSMetricsAvgMax) {                                
+                                            $eTime =  Get-Date
+                                            $metric = ($RDSMetricAvgMax).Trim()
+                                            ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                                $eTime =  (Get-Date).AddDays(($i*-1))
+                                                $sTime =  $eTime.AddDays(-1)
+                                                $Data = Get-CWMetricStatistic -Namespace AWS/RDS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension -Region $region
+                                                ForEach($d in $Data.Datapoints){
+                                                    $timeStamp = ""
+                                                    $timeStamp = $d.TimeStamp
+                                                    $AvgValue = $d.Average
+                                                    $MaxValue = $d.Maximum
+                                                    '"'+$DBInstanceIdentifier+'"|"'+$DBEngine+'"|"'+$timeStamp+'"|"'+$metric+'"|"'+$AvgValue+'"|"'+$MaxValue+'"|"'+0+'"' | Out-File $oFileRDS -Append -encoding ASCII
+                                                }
+                                            }
+                                            LogActivity "** INFO: Exported RDS CW Metric $metric : $DBInstanceIdentifier" $False
+                                        }
+
+                                        $RDSMetricsMax = ("NetworkReceiveThroughput,NetworkTransmitThroughput").split(",")
+                                        ForEach ($RDSMetricMax in $RDSMetricsMax) {     
+                                            $eTime =  Get-Date
+                                            $metric = ($RDSMetricMax).Trim()
+                                            ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                                $eTime =  (Get-Date).AddDays(($i*-1))
+                                                $sTime =  $eTime.AddDays(-1)
+                                                $Data = Get-CWMetricStatistic -Namespace AWS/RDS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Maximum") -Dimensions $dimension -Region $region 
+                                                ForEach($d in $Data.Datapoints){
+                                                    $timeStamp = ""
+                                                    $timeStamp = $d.TimeStamp
+                                                    $MaxValue = $d.Maximum
+                                                    '"'+$DBInstanceIdentifier+'"|"'+$DBEngine+'"|"'+$timeStamp+'"|"'+$metric+'"|"'+0+'"|"'+$MaxValue+'"|"'+0+'"' | Out-File $oFileRDS -Append -encoding ASCII
+                                                }
+                                            }
+                                            LogActivity "** INFO: Exported RDS CW Metric $metric : $DBInstanceIdentifier" $False
+                                        }
                                     }
                                 }
-                                LogActivity "** INFO: Exported RDS CW Metric $metric : $DBInstanceIdentifier" $False
-                            }
-
-                            $RDSMetricsMax = ("NetworkReceiveThroughput,NetworkTransmitThroughput").split(",")
-                            ForEach ($RDSMetricMax in $RDSMetricsMax) {     
-                                $eTime =  Get-Date
-                                $metric = ($RDSMetricMax).Trim()
-                                ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                    $eTime =  (Get-Date).AddDays(($i*-1))
-                                    $sTime =  $eTime.AddDays(-1)
-                                    $Data = Get-CWMetricStatistic -Namespace AWS/RDS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Maximum") -Dimensions $dimension 
-                                    ForEach($d in $Data.Datapoints){
-                                        $timeStamp = ""
-                                        $timeStamp = $d.TimeStamp
-                                        $MaxValue = $d.Maximum
-                                        "$DBInstanceIdentifier,$DBEngine,$timeStamp,$metric,0,$MaxValue,0" | Out-File $oFileRDS -Append -encoding ASCII
-                                    }
-                                }
-                                LogActivity "** INFO: Exported RDS CW Metric $metric : $DBInstanceIdentifier" $False
                             }
                         }
                     }
