@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.3 
+# Version: 1.0.4
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -91,7 +91,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.3"
+        $Version = "1.0.4"
 
         Return $Version 
     } CATCH {
@@ -508,6 +508,17 @@ Function LoadTSqlArray()
             $global:TsqlInstance.Add("40.001~[linkedservers]","EXEC [sp_linkedservers]")
         }  
 
+        ## 44 sys.dm_os_performance_counters
+        IF (($SqlVersion).SubString(0,2) -in("10","11","12","13","14","15","16","17")) {  
+            $global:TsqlInstance.Add("44.001~[sys_dm_os_performance_counters]","SELECT @@SERVERNAME AS SQLInstance, * FROM [sys].[dm_os_performance_counters]")   
+        }       
+        
+        ## 45 trace_flags
+        IF (($SqlVersion).SubString(0,2) -in("10","11","12","13","14","15","16","17")) {  
+            $global:TsqlInstance.Add("45.001~[trace_flags]","CREATE TABLE #mva_TraceStatus (TraceFlag INT, Status INT, Global INT, Session INT);
+                INSERT INTO #mva_TraceStatus (TraceFlag, Status, Global, Session) EXEC ('DBCC TRACESTATUS(-1) WITH NO_INFOMSGS');
+                SELECT @@SERVERNAME AS SQLInstance, * FROM #mva_TraceStatus;")   
+        }          
 
         ## Database Specific Queries
         $global:TsqlDatabase = @{}
@@ -615,8 +626,8 @@ Function LoadTSqlArray()
                 INNER JOIN sys.indexes AS i WITH (NOLOCK) ON s.[object_id] = i.[object_id] AND i.index_id = s.index_id
                 WHERE OBJECTPROPERTY(s.[object_id],'IsUserTable') = 1 AND s.database_id = DB_ID() AND user_updates > (user_seeks + user_scans + user_lookups) AND i.index_id > 1
                 OPTION (RECOMPILE);")   
-        }           
-
+        }         
+        
         ## Transactional Replication Specific Queries
         $global:TsqlReplicatedDatabase = @{}
 
@@ -1125,7 +1136,7 @@ Function GetServerIP
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: GetServerIP() : $ErrorMsg" $True
-        Exit
+        Exit_Script -ErrorRaised $True
     }
 }
 
@@ -1182,6 +1193,7 @@ Function Invoke-Sql
             LogActivity "** INFO: SQL Agent is not running on $ServerInstance : CollectConnections Job will not run" $True
         } Else {
             LogActivity "** ERROR: Invoke-Sql() : $ErrorMsg" $False
+            Exit_Script -ErrorRaised $True
         }
     }
 }
@@ -1211,6 +1223,7 @@ Function IsAgSecondary()
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: IsAgSecondary : $ErrorMsg" $True
+        Exit_Script -ErrorRaised $True
     }
 }    
 
@@ -1235,6 +1248,7 @@ Function IsRDS()
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: IsRDS() : $ErrorMsg" $True
+        Exit_Script -ErrorRaised $True
     }
 } 
 
@@ -1257,6 +1271,7 @@ Function HasSqlAgent()
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: HasSqlAgent() : $ErrorMsg" $True
+        Exit_Script -ErrorRaised $True
     }
 } 
 
@@ -1283,6 +1298,7 @@ Function ContainsUserObjects()
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: ContainsUserObjects() : $ErrorMsg" $True
+        Exit_Script -ErrorRaised $True
     }
 } 
 
@@ -1300,7 +1316,8 @@ Function FormatServerName()
         Return $FormatServerName
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
-        LogActivity "** ERROR: HasSqlAgent() : $ErrorMsg" $True
+        LogActivity "** ERROR: FormatServerName() : $ErrorMsg" $True
+        Exit_Script -ErrorRaised $True
     }
 } 
 
@@ -1741,6 +1758,7 @@ Function Main
             } CATCH {
                 IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
                 LogActivity "** ERROR: InstallSqlPackage() : $ErrorMsg" $True
+                Exit_Script -ErrorRaised $True
             }
 
             ForEach ($Server in $global:AllServers)
@@ -1758,7 +1776,7 @@ Function Main
                     } CATCH {
                         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
                         LogActivity "** ERROR: Determing SQL Version : $ErrorMsg" $True
-                        Exit_Script -ErrorRaised $True
+                        #Exit_Script -ErrorRaised $True
                     }
                     $SqlVersion = $result.version 
 
@@ -1804,6 +1822,7 @@ Function Main
 
         ## Exports [dbo].[Connections], Updates Zip and Exits
         IF ($CollectConnectionsOnly -eq $True) { 
+            LoadTSqlArray 17
             CollectConnectionInfoOnly
         }
 
@@ -1848,6 +1867,7 @@ Function Main
                         } CATCH {
                             IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
                             LogActivity "** ERROR: Collecting database names : $ErrorMsg" $True
+                            Exit_Script -ErrorRaised $True
                         }
 
                         ## Per Database Metrics
@@ -1861,6 +1881,7 @@ Function Main
                             } CATCH {
                                 IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
                                 LogActivity "** ERROR: Detecting Secondary Replica State : $Database : $ErrorMsg" $True
+                                Exit_Script -ErrorRaised $True
                             }
                         }
 
@@ -1879,6 +1900,7 @@ Function Main
                         } CATCH {
                             IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
                             LogActivity "** ERROR: Collecting SSRS Metrics : $ErrorMsg" $True
+                            Exit_Script -ErrorRaised $True
                         }
 
                         ## SSIS Metrics
@@ -1896,6 +1918,7 @@ Function Main
                         } CATCH {
                             IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
                             LogActivity "** ERROR: Collecting SSIS Metrics : $ErrorMsg" $True
+                            Exit_Script -ErrorRaised $True
                         }
                     }
                 }
@@ -2025,6 +2048,10 @@ Function Main
                                     $dimension.Value = $volume.Attachments.VolumeId
 
                                     $VolumeId = $volume.Attachments.VolumeId
+
+                                    $oFileEBSConfig = "$ScriptRoot\Export\$datestamp\$FormattedServer\$VolumeId.json"
+                                    ($volume | ConvertTo-JSON) | Out-File $oFileEBSConfig -encoding ASCII    
+
                                     $EBSMetricsSum = ("VolumeReadOps, VolumeWriteOps, VolumeReadBytes, VolumeWriteBytes").split(",")
                                     ForEach ($EBSMetricSum in $EBSMetricsSum) {
                                         $eTime =  Get-Date
@@ -2051,6 +2078,7 @@ Function Main
             } CATCH {
                 IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
                 LogActivity "** ERROR: Exporting EC2 CW Metrics : $instanceId : $ErrorMsg" $True
+                Exit_Script -ErrorRaised $True
             }
 
             ## FSx Cloudwatch Data Collection
@@ -2224,6 +2252,7 @@ Function Main
             } CATCH {
                 IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
                 LogActivity "** ERROR: Exporting FSx CW Metrics : $FileSystemId : $ErrorMsg" $True
+                Exit_Script -ErrorRaised $True
             }
 
             ## RDS Cloudwatch Data Collection
@@ -2261,6 +2290,14 @@ Function Main
                                         $dimension = New-Object Amazon.CloudWatch.Model.Dimension
                                         $dimension.Name = "DBInstanceIdentifier"
                                         $dimension.Value = $DBInstanceIdentifier
+
+                                        IF (-not $RDSInstance.DBParameterGroups.DBParameterGroupName.StartsWith("default.")) {
+                                            $DBParameterGroupName = $RDSInstance.DBParameterGroups.DBParameterGroupName
+                                            $oFileCustomParameterGroup = "$ScriptRoot\Export\$datestamp\$FormattedServer\CPG-$DBParameterGroupName.json"
+
+                                            $CustomParameterGroup = Get-RDSDBParameter -DBParameterGroupName $DBParameterGroupName -Region $region | ConvertTo-Json
+                                            $CustomParameterGroup | Out-File $oFileCustomParameterGroup -encoding ASCII
+                                        }
 
                                         $RDSMetricsSum = ("ReadThroughput,WriteThroughput,ReadIOPS,WriteIOPS,ReadLatency,WriteLatency").split(",")
                                         ForEach ($RDSMetricSum in $RDSMetricsSum) {
@@ -2325,6 +2362,7 @@ Function Main
             } CATCH {
                 IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
                 LogActivity "** ERROR: Exporting RDS CW Metrics : $DBInstanceIdentifier : $ErrorMsg" $True
+                Exit_Script -ErrorRaised $True
             }
         }
 
@@ -2362,6 +2400,24 @@ TRY {
         -ExportPath $ExportPath                                 `
         -FileNameDelimiter $FileNameDelimiter                   `
         -DebugMode $DebugMode 
+
+    # Main -CollectConnectionsOnly $False `
+    #     -ExportDacPacs $False `
+    #     -CollectCloudWatchData $False `
+    #     -CollectTsqlData $False `
+    #     -CleanUpEnvironment $False `
+    #     -SqlServerConnectionTimeout 300 `
+    #     -SqlServerQueryTimeout 5 `
+    #     -CloudWatchCollectionPeriod 30 `
+    #     -IncludeAllMsgs $False `
+    #     -ValidateResourcesOnly $True `
+    #     -AWSProfile '' `
+    #     -UseSSOLogin $False `
+    #     -SqlUser '' `
+    #     -SqlPassword '' `
+    #     -ExportPath '' `
+    #     -FileNameDelimiter '~~~~' `
+    #     -DebugMode $False
 
 } CATCH {
     IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }

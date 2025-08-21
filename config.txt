@@ -2,6 +2,6 @@ customername:
 region:
 server:
 instance:
-rds: 
+rds:
 fsx:
-database: 
+database:
