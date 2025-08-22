@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.5
+# Version: 1.0.6
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -91,7 +91,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.5"
+        $Version = "1.0.6"
 
         Return $Version 
     } CATCH {
@@ -970,7 +970,12 @@ Function LoadTSqlArray()
             $global:TsqlInstance.Add("45.001~[trace_flags]","CREATE TABLE #mva_TraceStatus (TraceFlag INT, Status INT, Global INT, Session INT);
                 INSERT INTO #mva_TraceStatus (TraceFlag, Status, Global, Session) EXEC ('DBCC TRACESTATUS(-1) WITH NO_INFOMSGS');
                 SELECT @@SERVERNAME AS SQLInstance, * FROM #mva_TraceStatus;")   
-        }          
+        }     
+        
+        ## 46 sys.dm_os_process_memory
+        IF (($SqlVersion).SubString(0,2) -in("10","11","12","13","14","15","16","17")) {  
+            $global:TsqlInstance.Add("46.001~[sys_dm_os_process_memory]","SELECT @@SERVERNAME AS SQLInstance, * FROM [sys].[dm_os_process_memory]")   
+        }             
 
         ## Database Specific Queries
         $global:TsqlDatabase = @{}
