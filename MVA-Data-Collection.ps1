@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.7
+# Version: 1.0.8
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -91,7 +91,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.7"
+        $Version = "1.0.8"
 
         Return $Version 
     } CATCH {
@@ -1787,6 +1787,47 @@ Function FormatServerName()
     }
 } 
 
+Function ScriptVersionCheck()
+{
+    TRY {
+
+        $Internet = $False
+
+        $Url = "https://api.github.com/repos/evolvecloudservicesgit/mva-data-collection/releases/latest"
+
+        TRY {
+            $response = Invoke-WebRequest -Uri "http://www.msftconnecttest.com/connecttest.txt" -UseBasicParsing -TimeoutSec 5
+            IF ($response.StatusCode -eq 200) {
+                $Internet = $True
+            }
+        } CATCH {
+            $Internet = $False
+        }        
+
+        IF ($Internet) {
+            $CurrentScriptVersion = GetVersion
+            $LatestScriptVersion = (Invoke-RestMethod -Uri $Url).name
+
+            If ($LatestScriptVersion -gt $CurrentScriptVersion) {
+                LogActivity "** ALERT: This version of MVA-Data-Collection.ps1 is out of date. Version: $LatestScriptVersion is now available for download" $True
+                LogActivity "** ALERT: Download Version: $LatestScriptVersion @ https://github.com/evolvecloudservicesgit/mva-data-collection" $True
+
+                $ContinueConfirm = Read-Host "Continue With Current Version? (or Exit and Download Update): (Y/N)"
+                IF (!($ContinueConfirm.ToUpper() -eq 'Y')) {
+                    LogActivity "** INFO: Exiting to Download Updated MVA-Data-Collection.ps1" $True
+                    Exit_Script -ErrorRaised $False     
+                } ELSE {
+                    LogActivity "** INFO: MVA Data Collection Continuing - Please Update Soon" $True             
+                }   
+            }         
+        }
+    } CATCH {
+        IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
+        LogActivity "** ERROR: ScriptVersionCheck() : $ErrorMsg" $True
+        
+    }
+} 
+
 Function Main 
 {
     param( 
@@ -1855,6 +1896,9 @@ Function Main
         ## Log Script Version
         $ver = GetVersion
         LogActivity "** INFO: MVA Data Collection Script - Version : $ver" $True
+
+        ## Check for Latest Version of This Script
+        ScriptVersionCheck
 
         ## Log Parameters
         LogActivity "** INFO: Parameter - CollectConnectionsOnly: $CollectConnectionsOnly" $False
