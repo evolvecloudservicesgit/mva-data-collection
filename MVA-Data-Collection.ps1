@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.6
+# Version: 1.0.7
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -91,7 +91,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.6"
+        $Version = "1.0.7"
 
         Return $Version 
     } CATCH {
@@ -1668,7 +1668,7 @@ Function IsAgSecondary()
             $sql = "SELECT 1 As Result FROM master.sys.databases db 
                 INNER JOIN master.sys.dm_hadr_database_replica_states drs ON db.database_id = drs.database_id
                 INNER JOIN master.sys.dm_hadr_availability_replica_states ars ON drs.replica_id = ars.replica_id
-                WHERE db.name = '$Database' AND ars.role_desc = 'SECONDARY'"
+                WHERE db.name = '$Database' AND ars.role_desc = 'SECONDARY' AND ars.is_local = 1"
             $AgSecondary = (Invoke-Sql -ServerInstance $Server -Database 'master' -Query $sql) 
             IF (!($AgSecondary.Result -eq 1)) {
                $IsAgSecondary = $False 
@@ -1701,6 +1701,15 @@ Function IsRDS()
                 }
             }
         } 
+		
+        IF (-not $IsRDS) {
+            $sql = "SELECT 1 As Result FROM [master].[sys].[databases] WHERE [name] = 'rdsadmin'"
+            $result = (Invoke-Sql -ServerInstance $Server -Database 'master' -Query $sql) 
+            IF ($result.result -eq '1') {
+                $IsRDS = $true
+            }
+        }	
+		
         Return $IsRDS
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
