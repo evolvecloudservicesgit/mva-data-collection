@@ -261,10 +261,13 @@ Function LoadTSqlArray()
         
         ## 00 ConnectionInfo
         IF (($SqlVersion).SubString(0,2) -in("10","11","12","13","14","15","16","17")) {  
-            $global:TsqlInstance.Add("00.001~ConnectionInfo","SELECT DISTINCT @@SERVERNAME AS SQLInstance, ec.client_net_address as ClientAddress, es.[program_name] as ProgramName, es.[host_name] as HostName, es.login_name as LoginName, COUNT(ec.session_id) AS ConnectionCount,getdate() as collect_date
-                FROM sys.dm_exec_sessions AS es WITH (NOLOCK) 
-                INNER JOIN sys.dm_exec_connections AS ec WITH (NOLOCK) ON es.session_id = ec.session_id 
-                GROUP BY ec.client_net_address, es.[program_name], es.[host_name], es.login_name  
+            $global:TsqlInstance.Add("00.002~ConnectionInfo","SELECT DISTINCT @@SERVERNAME AS SQLInstance, ec.client_net_address as ClientAddress, es.[program_name] as ProgramName, es.[host_name] as HostName, 
+                    es.login_name as LoginName, DB_NAME(er.database_id) AS database_name, COUNT(ec.session_id) AS ConnectionCount,getdate() as collect_date 
+                FROM sys.dm_exec_sessions es
+                    JOIN sys.dm_exec_connections ec ON es.session_id = ec.session_id
+                    LEFT JOIN sys.dm_exec_requests er ON es.session_id = er.session_id
+                WHERE es.is_user_process = 1
+                GROUP BY ec.client_net_address, es.[program_name], es.[host_name], es.login_name, DB_NAME(er.database_id) 
                 ORDER BY ec.client_net_address, es.[program_name] OPTION (RECOMPILE);")
         }
 
@@ -975,8 +978,22 @@ Function LoadTSqlArray()
         ## 46 sys.dm_os_process_memory
         IF (($SqlVersion).SubString(0,2) -in("10","11","12","13","14","15","16","17")) {  
             $global:TsqlInstance.Add("46.001~[sys_dm_os_process_memory]","SELECT @@SERVERNAME AS SQLInstance, * FROM [sys].[dm_os_process_memory]")   
-        }             
+        }     
+        
+        ## 47 sql_agent_job_info
+        IF (($SqlVersion).SubString(0,2) -in("10","11","12","13","14","15","16","17")) {  
+            $global:TsqlInstance.Add("46.001~[sql_agent_job_info]","SELECT @@SERVERNAME AS SQLInstance, 
+                j.job_id,j.name AS JobName,j.enabled AS JobEnabled,c.name AS Category,s.step_id,s.step_name,s.subsystem,s.command,sc.name AS ScheduleName,
+                sc.enabled AS ScheduleEnabled,sc.freq_type,sc.freq_interval,sc.freq_subday_type,sc.freq_subday_interval,sc.freq_relative_interval,
+                sc.freq_recurrence_factor,sc.active_start_date,sc.active_end_date,sc.active_start_time,sc.active_end_time 
+                FROM [msdb].[dbo].[sysjobs] j
+                    LEFT JOIN msdb.dbo.syscategories c ON j.category_id = c.category_id
+                    LEFT JOIN msdb.dbo.sysjobsteps s ON j.job_id = s.job_id
+                    LEFT JOIN msdb.dbo.sysjobschedules js ON j.job_id = js.job_id
+                    LEFT JOIN msdb.dbo.sysschedules sc ON js.schedule_id = sc.schedule_id")   
+        }            
 
+        #############################
         ## Database Specific Queries
         $global:TsqlDatabase = @{}
 
