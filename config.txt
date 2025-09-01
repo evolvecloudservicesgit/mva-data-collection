@@ -1,7 +1,7 @@
 customername:
-region:
+Region:
 server:
 instance:
-rds:
+Rds:
 fsx:
 database:
