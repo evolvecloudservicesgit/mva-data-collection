@@ -1,0 +1,165 @@
+{
+  "Architecture": "x86_64",
+  "BlockDeviceMappings": [
+    {
+      "DeviceName": "/dev/sda1",
+      "Ebs": {
+        "AttachTime": "2025-08-13T10:03:44-05:00",
+        "DeleteOnTermination": true,
+        "Status": "attached",
+        "VolumeId": "vol-0442aa55f71d378a6"
+      }
+    },
+    {
+      "DeviceName": "/dev/sdb",
+      "Ebs": {
+        "AttachTime": "2025-08-13T10:03:44-05:00",
+        "DeleteOnTermination": false,
+        "Status": "attached",
+        "VolumeId": "vol-0532ee40b15815d2f"
+      }
+    }
+  ],
+  "ClientToken": "a91d125a-3548-445f-97fd-8d57ab65efcd",
+  "EbsOptimized": true,
+  "EnaSupport": true,
+  "Hypervisor": "xen",
+  "IamInstanceProfile": {
+    "Arn": "arn:aws:iam::235290434474:instance-profile/EC2-role",
+    "Id": "AIPATNSDHDOVJTIXQMG7A"
+  },
+  "NetworkInterfaces": [
+    {
+      "Association": {
+        "IpOwnerId": "amazon",
+        "PublicDnsName": "ec2-3-140-195-51.us-east-2.compute.amazonaws.com",
+        "PublicIp": "3.140.195.51"
+      },
+      "Attachment": {
+        "AttachTime": "2025-08-13T10:03:43-05:00",
+        "AttachmentId": "eni-attach-02c3a822d5d6a0cd8",
+        "DeleteOnTermination": true,
+        "DeviceIndex": 0,
+        "Status": "attached",
+        "NetworkCardIndex": 0
+      },
+      "Description": "",
+      "Groups": [
+        {
+          "GroupId": "sg-0cb8a2b0f28ff3682",
+          "GroupName": "mva-private-sg"
+        }
+      ],
+      "Ipv6Addresses": [],
+      "MacAddress": "02:aa:b0:1c:92:b3",
+      "NetworkInterfaceId": "eni-0be8118026d9d5f77",
+      "OwnerId": "235290434474",
+      "PrivateDnsName": "ip-10-0-28-94.us-east-2.compute.internal",
+      "PrivateIpAddress": "10.0.28.94",
+      "PrivateIpAddresses": [
+        {
+          "Association": {
+            "IpOwnerId": "amazon",
+            "PublicDnsName": "ec2-3-140-195-51.us-east-2.compute.amazonaws.com",
+            "PublicIp": "3.140.195.51"
+          },
+          "Primary": true,
+          "PrivateDnsName": "ip-10-0-28-94.us-east-2.compute.internal",
+          "PrivateIpAddress": "10.0.28.94"
+        }
+      ],
+      "SourceDestCheck": true,
+      "Status": "in-use",
+      "SubnetId": "subnet-012e70b22f0110f92",
+      "VpcId": "vpc-09e6dd5f1f12f24e5",
+      "InterfaceType": "interface",
+      "Operator": {
+        "Managed": false
+      }
+    }
+  ],
+  "RootDeviceName": "/dev/sda1",
+  "RootDeviceType": "ebs",
+  "SecurityGroups": [
+    {
+      "GroupId": "sg-0cb8a2b0f28ff3682",
+      "GroupName": "mva-private-sg"
+    }
+  ],
+  "SourceDestCheck": true,
+  "Tags": [
+    {
+      "Key": "Name",
+      "Value": "mvaSourceInstanceUbuntu"
+    }
+  ],
+  "VirtualizationType": "hvm",
+  "CpuOptions": {
+    "CoreCount": 1,
+    "ThreadsPerCore": 2
+  },
+  "CapacityReservationSpecification": {
+    "CapacityReservationPreference": "open"
+  },
+  "HibernationOptions": {
+    "Configured": false
+  },
+  "MetadataOptions": {
+    "State": "applied",
+    "HttpTokens": "required",
+    "HttpPutResponseHopLimit": 2,
+    "HttpEndpoint": "enabled",
+    "HttpProtocolIpv6": "disabled",
+    "InstanceMetadataTags": "disabled"
+  },
+  "EnclaveOptions": {
+    "Enabled": false
+  },
+  "BootMode": "uefi-preferred",
+  "PlatformDetails": "Linux/UNIX",
+  "UsageOperation": "RunInstances",
+  "UsageOperationUpdateTime": "2025-08-13T10:03:43-05:00",
+  "PrivateDnsNameOptions": {
+    "HostnameType": "ip-name",
+    "EnableResourceNameDnsARecord": false,
+    "EnableResourceNameDnsAAAARecord": false
+  },
+  "MaintenanceOptions": {
+    "AutoRecovery": "default",
+    "RebootMigration": "default"
+  },
+  "CurrentInstanceBootMode": "uefi",
+  "NetworkPerformanceOptions": {
+    "BandwidthWeighting": "default"
+  },
+  "Operator": {
+    "Managed": false
+  },
+  "InstanceId": "i-041f169de8a947192",
+  "ImageId": "ami-0b05d988257befbbe",
+  "State": {
+    "Code": 16,
+    "Name": "running"
+  },
+  "PrivateDnsName": "ip-10-0-28-94.us-east-2.compute.internal",
+  "PublicDnsName": "ec2-3-140-195-51.us-east-2.compute.amazonaws.com",
+  "StateTransitionReason": "",
+  "KeyName": "Evolve-Ohio-Phil",
+  "AmiLaunchIndex": 0,
+  "ProductCodes": [],
+  "InstanceType": "t3.small",
+  "LaunchTime": "2025-08-31T07:55:04-05:00",
+  "Placement": {
+    "AvailabilityZoneId": "use2-az1",
+    "GroupName": "",
+    "Tenancy": "default",
+    "AvailabilityZone": "us-east-2a"
+  },
+  "Monitoring": {
+    "State": "disabled"
+  },
+  "SubnetId": "subnet-012e70b22f0110f92",
+  "VpcId": "vpc-09e6dd5f1f12f24e5",
+  "PrivateIpAddress": "10.0.28.94",
+  "PublicIpAddress": "3.140.195.51"
+}

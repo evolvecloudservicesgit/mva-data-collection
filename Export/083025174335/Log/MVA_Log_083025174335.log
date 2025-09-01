@@ -1,0 +1,26 @@
+2025-08-30 17:43:35.020 :  ** INFO: Logfile Path Set: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection/Export/083025174335/Log/MVA_Log_083025174335.log
+2025-08-30 17:43:35.073 :  ** INFO: MVA Data Collection Script - Version : 1.0.8
+2025-08-30 17:43:35.529 :  ** INFO: Parameter - CollectConnectionsOnly: False
+2025-08-30 17:43:35.581 :  ** INFO: Parameter - ExportDacPacs: False
+2025-08-30 17:43:35.633 :  ** INFO: Parameter - CollectCloudWatchData: False
+2025-08-30 17:43:35.685 :  ** INFO: Parameter - CollectTsqlData: False
+2025-08-30 17:43:35.738 :  ** INFO: Parameter - CleanUpEnvironment: False
+2025-08-30 17:43:35.791 :  ** INFO: Parameter - SqlServerConnectionTimeout: 300
+2025-08-30 17:43:35.842 :  ** INFO: Parameter - SqlServerQueryTimeout: 5
+2025-08-30 17:43:35.894 :  ** INFO: Parameter - CloudWatchCollectionPeriod: 30
+2025-08-30 17:43:35.946 :  ** INFO: Parameter - IncludeAllMsgs: True
+2025-08-30 17:43:36.001 :  ** INFO: Parameter - ValidateResourcesOnly: True
+2025-08-30 17:43:36.053 :  ** INFO: Parameter - AWSProfile: 
+2025-08-30 17:43:36.105 :  ** INFO: Parameter - UseSSOLogin: False
+2025-08-30 17:43:36.156 :  ** INFO: Parameter - SqlUser: admin
+2025-08-30 17:43:36.208 :  ** INFO: Parameter - SqlPassword: *********
+2025-08-30 17:43:36.260 :  ** INFO: Parameter - ExportPath: 
+2025-08-30 17:43:36.312 :  ** INFO: Parameter - FileNameDelimiter: ~~~~
+2025-08-30 17:43:36.364 :  ** INFO: Parameter - DebugMode: False
+2025-08-30 17:43:36.642 :  ** INFO: AWS CLI v2.x Detected: Version aws-cli/2.28.21 Python/3.13.7 Darwin/24.6.0 source/arm64
+2025-08-30 17:43:36.694 :  ** INFO: PS Version: 7.5.2
+2025-08-30 17:43:37.000 :  ** INFO: PS Module AWS.Tools.Common Found: Version 5.0.45
+2025-08-30 17:43:37.077 :  ** INFO: PS Module AWSPowerShell Found: Version 5.0.45
+2025-08-30 17:43:37.153 :  ** INFO: PS Module AWSPowerShell.NetCore Found: Version 5.0.29
+2025-08-30 17:43:37.208 :  ** INFO: ValidateResourcesOnly Selected : Disabling all other collections
+2025-08-30 18:01:30.919 :  ** INFO: Setting Script Path: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection

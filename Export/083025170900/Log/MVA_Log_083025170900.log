@@ -1,0 +1,27 @@
+2025-08-30 17:09:00.673 :  ** INFO: Logfile Path Set: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection/Export/083025170900/Log/MVA_Log_083025170900.log
+2025-08-30 17:09:00.725 :  ** INFO: MVA Data Collection Script - Version : 1.0.8
+2025-08-30 17:09:01.119 :  ** INFO: Parameter - CollectConnectionsOnly: False
+2025-08-30 17:09:01.171 :  ** INFO: Parameter - ExportDacPacs: False
+2025-08-30 17:09:01.222 :  ** INFO: Parameter - CollectCloudWatchData: False
+2025-08-30 17:09:01.275 :  ** INFO: Parameter - CollectTsqlData: False
+2025-08-30 17:09:01.328 :  ** INFO: Parameter - CleanUpEnvironment: False
+2025-08-30 17:09:01.382 :  ** INFO: Parameter - SqlServerConnectionTimeout: 300
+2025-08-30 17:09:01.435 :  ** INFO: Parameter - SqlServerQueryTimeout: 5
+2025-08-30 17:09:01.488 :  ** INFO: Parameter - CloudWatchCollectionPeriod: 30
+2025-08-30 17:09:01.540 :  ** INFO: Parameter - IncludeAllMsgs: True
+2025-08-30 17:09:01.594 :  ** INFO: Parameter - ValidateResourcesOnly: True
+2025-08-30 17:09:01.647 :  ** INFO: Parameter - AWSProfile: 
+2025-08-30 17:09:01.700 :  ** INFO: Parameter - UseSSOLogin: False
+2025-08-30 17:09:01.753 :  ** INFO: Parameter - SqlUser: admin
+2025-08-30 17:09:01.806 :  ** INFO: Parameter - SqlPassword: *********
+2025-08-30 17:09:01.860 :  ** INFO: Parameter - ExportPath: 
+2025-08-30 17:09:01.913 :  ** INFO: Parameter - FileNameDelimiter: ~~~~
+2025-08-30 17:09:01.965 :  ** INFO: Parameter - DebugMode: False
+2025-08-30 17:09:02.239 :  ** INFO: AWS CLI v2.x Detected: Version aws-cli/2.28.21 Python/3.13.7 Darwin/24.6.0 source/arm64
+2025-08-30 17:09:02.290 :  ** INFO: PS Version: 7.5.2
+2025-08-30 17:09:02.394 :  ** ERROR: PS Module AWS.Tools.Common Missing
+2025-08-30 17:09:25.512 :  ** ERROR: Errors were detected! Data Collection is Incomplete.
+2025-08-30 17:09:25.564 :  ** ERROR: Please send Error Log file /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection/Export/083025170900/Log/MVA_Log_083025170900.log to mva@evolvecloudservices.com
+2025-08-30 17:09:25.616 :  ** INFO: ***********************************END OF LOGS ************************************* 
+2025-08-30 17:09:25.667 :  No match was found for the specified search criteria and module names 'AWS.Tools.Common'.
+2025-08-30 17:09:34.977 :  ** INFO: Setting Script Path: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection

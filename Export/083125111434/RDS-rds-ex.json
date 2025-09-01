@@ -1,0 +1,82 @@
+{
+  "DBInstanceIdentifier": "rds-ex",
+  "DBInstanceClass": "db.t3.micro",
+  "Engine": "sqlserver-ex",
+  "DBInstanceStatus": "available",
+  "MasterUsername": "admin",
+  "Endpoint": {
+    "Address": "rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com",
+    "Port": 1433,
+    "HostedZoneId": "Z2XHWR1WZ565X2"
+  },
+  "AllocatedStorage": 20,
+  "InstanceCreateTime": "2025-08-30T15:21:12.54-05:00",
+  "PreferredBackupWindow": "04:20-04:50",
+  "BackupRetentionPeriod": 0,
+  "DBSecurityGroups": [],
+  "VpcSecurityGroups": [
+    {
+      "VpcSecurityGroupId": "sg-0cb8a2b0f28ff3682",
+      "Status": "active"
+    }
+  ],
+  "DBParameterGroups": [
+    {
+      "DBParameterGroupName": "default.sqlserver-ex-15.0",
+      "ParameterApplyStatus": "in-sync"
+    }
+  ],
+  "AvailabilityZone": "us-east-2a",
+  "DBSubnetGroup": {
+    "DBSubnetGroupName": "default-vpc-09e6dd5f1f12f24e5",
+    "DBSubnetGroupDescription": "Created from the RDS Management Console",
+    "VpcId": "vpc-09e6dd5f1f12f24e5",
+    "SubnetGroupStatus": "Complete",
+    "Subnets": [
+      "@{SubnetIdentifier=subnet-01952ff513a288c5f; SubnetAvailabilityZone=; SubnetOutpost=; SubnetStatus=Active}",
+      "@{SubnetIdentifier=subnet-051a1e48ff4817b40; SubnetAvailabilityZone=; SubnetOutpost=; SubnetStatus=Active}",
+      "@{SubnetIdentifier=subnet-012e70b22f0110f92; SubnetAvailabilityZone=; SubnetOutpost=; SubnetStatus=Active}"
+    ]
+  },
+  "PreferredMaintenanceWindow": "sat:05:11-sat:05:41",
+  "PendingModifiedValues": {},
+  "MultiAZ": false,
+  "EngineVersion": "15.00.4440.1.v1",
+  "AutoMinorVersionUpgrade": false,
+  "ReadReplicaDBInstanceIdentifiers": [],
+  "LicenseModel": "license-included",
+  "OptionGroupMemberships": [
+    {
+      "OptionGroupName": "default:sqlserver-ex-15-00",
+      "Status": "in-sync"
+    }
+  ],
+  "CharacterSetName": "SQL_Latin1_General_CP1_CI_AS",
+  "PubliclyAccessible": true,
+  "StorageType": "gp2",
+  "DbInstancePort": 0,
+  "StorageEncrypted": false,
+  "DbiResourceId": "db-KMU2IRYWEV23QG5EAJOICG4RAA",
+  "CACertificateIdentifier": "rds-ca-rsa2048-g1",
+  "DomainMemberships": [],
+  "CopyTagsToSnapshot": true,
+  "MonitoringInterval": 0,
+  "DBInstanceArn": "arn:aws:rds:us-east-2:235290434474:db:rds-ex",
+  "IAMDatabaseAuthenticationEnabled": false,
+  "DatabaseInsightsMode": "standard",
+  "PerformanceInsightsEnabled": false,
+  "DeletionProtection": false,
+  "AssociatedRoles": [],
+  "MaxAllocatedStorage": 1000,
+  "TagList": [],
+  "CustomerOwnedIpEnabled": false,
+  "ActivityStreamStatus": "stopped",
+  "BackupTarget": "region",
+  "NetworkType": "IPV4",
+  "StorageThroughput": 0,
+  "CertificateDetails": {
+    "CAIdentifier": "rds-ca-rsa2048-g1",
+    "ValidTill": "2028-08-29T15:18:42-05:00"
+  },
+  "DedicatedLogVolume": false
+}

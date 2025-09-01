@@ -1,0 +1,40 @@
+2025-08-31 07:40:23.763 :  ** INFO: Logfile Path Set: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection/Export/083125074023/Log/MVA_Log_083125074023.log
+2025-08-31 07:40:23.814 :  ** INFO: MVA Data Collection Script - Version : 1.0.8
+2025-08-31 07:40:24.231 :  ** INFO: Parameter - CollectConnectionsOnly: False
+2025-08-31 07:40:24.284 :  ** INFO: Parameter - ExportDacPacs: False
+2025-08-31 07:40:24.338 :  ** INFO: Parameter - CollectCloudWatchData: True
+2025-08-31 07:40:24.391 :  ** INFO: Parameter - CollectTsqlData: False
+2025-08-31 07:40:24.445 :  ** INFO: Parameter - CleanUpEnvironment: False
+2025-08-31 07:40:24.498 :  ** INFO: Parameter - SqlServerConnectionTimeout: 300
+2025-08-31 07:40:24.552 :  ** INFO: Parameter - SqlServerQueryTimeout: 5
+2025-08-31 07:40:24.607 :  ** INFO: Parameter - CloudWatchCollectionPeriod: 30
+2025-08-31 07:40:24.660 :  ** INFO: Parameter - IncludeAllMsgs: True
+2025-08-31 07:40:24.714 :  ** INFO: Parameter - ValidateResourcesOnly: False
+2025-08-31 07:40:24.768 :  ** INFO: Parameter - AWSProfile: evolve
+2025-08-31 07:40:24.823 :  ** INFO: Parameter - UseSSOLogin: False
+2025-08-31 07:40:24.876 :  ** INFO: Parameter - SqlUser: admin
+2025-08-31 07:40:24.930 :  ** INFO: Parameter - SqlPassword: *********
+2025-08-31 07:40:24.988 :  ** INFO: Parameter - ExportPath: 
+2025-08-31 07:40:25.040 :  ** INFO: Parameter - FileNameDelimiter: ~~~~
+2025-08-31 07:40:25.091 :  ** INFO: Parameter - DebugMode: False
+2025-08-31 07:40:25.455 :  ** INFO: AWS CLI v2.x Detected: Version aws-cli/2.28.21 Python/3.13.7 Darwin/24.6.0 source/arm64
+2025-08-31 07:40:25.506 :  ** INFO: PS Version: 7.5.2
+2025-08-31 07:40:25.586 :  ** INFO: PS Module AWS.Tools.Common Missing
+2025-08-31 07:40:25.655 :  ** INFO: PS Module AWSPowerShell Missing
+2025-08-31 07:40:25.724 :  ** INFO: PS Module AWSPowerShell.NetCore Found: Version 5.0.29
+2025-08-31 07:40:25.776 :  ** INFO: Profile evolve Supplied: Validating
+2025-08-31 07:40:26.745 :  ** INFO: Profile evolve Found
+2025-08-31 07:40:26.797 :  ** INFO: Profile: User ID: AIDATNSDHDOVAB6RTZB4N
+2025-08-31 07:40:26.848 :  ** INFO: Profile: Account: 235290434474
+2025-08-31 07:40:26.900 :  ** INFO: Profile: ARN: arn:aws:iam::235290434474:user/pekins
+2025-08-31 07:40:27.513 :  ** INFO: Region us-east-2 has been validated
+2025-08-31 07:40:28.120 :  ** INFO: Instance i-034419e3c67ca1103 has been validated
+2025-08-31 07:40:28.171 :  ** INFO: Instance i-034419e3c67ca1103 Private DNS Name Found: ec2-3-14-134-131.us-east-2.compute.amazonaws.com
+2025-08-31 07:40:28.787 :  ** INFO: RDS Node rds-ex has been validated
+2025-08-31 07:40:28.840 :  ** INFO: No TSQL Data Collection Specified : Skipping SQL Connectivity Test
+2025-08-31 07:40:28.891 :  ** INFO: Database Tsql Filter Created : SELECT [name] FROM [master].[sys].[databases] 
+                    WHERE source_database_id IS NULL 
+                        and [name] NOT IN('model','tempdb','master','msdb','distribution','ssisdb','rdsadmin','MVA-Data-Collection') 
+                        and [name] NOT LIKE '%ReportServer%' 
+                        and state_desc = 'ONLINE'  ORDER BY Name
+2025-08-31 07:44:12.631 :  ** INFO: Setting Script Path: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection

@@ -1,0 +1,32 @@
+2025-08-30 18:30:01.898 :  ** INFO: Logfile Path Set: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection/Export/083025183001/Log/MVA_Log_083025183001.log
+2025-08-30 18:30:01.950 :  ** INFO: MVA Data Collection Script - Version : 1.0.8
+2025-08-30 18:30:02.362 :  ** INFO: Parameter - CollectConnectionsOnly: False
+2025-08-30 18:30:02.414 :  ** INFO: Parameter - ExportDacPacs: False
+2025-08-30 18:30:02.478 :  ** INFO: Parameter - CollectCloudWatchData: False
+2025-08-30 18:30:02.531 :  ** INFO: Parameter - CollectTsqlData: False
+2025-08-30 18:30:02.586 :  ** INFO: Parameter - CleanUpEnvironment: False
+2025-08-30 18:30:02.640 :  ** INFO: Parameter - SqlServerConnectionTimeout: 300
+2025-08-30 18:30:02.694 :  ** INFO: Parameter - SqlServerQueryTimeout: 5
+2025-08-30 18:30:02.747 :  ** INFO: Parameter - CloudWatchCollectionPeriod: 30
+2025-08-30 18:30:02.800 :  ** INFO: Parameter - IncludeAllMsgs: True
+2025-08-30 18:30:02.853 :  ** INFO: Parameter - ValidateResourcesOnly: True
+2025-08-30 18:30:02.906 :  ** INFO: Parameter - AWSProfile: evolve
+2025-08-30 18:30:02.960 :  ** INFO: Parameter - UseSSOLogin: False
+2025-08-30 18:30:03.013 :  ** INFO: Parameter - SqlUser: admin
+2025-08-30 18:30:03.066 :  ** INFO: Parameter - SqlPassword: *********
+2025-08-30 18:30:03.119 :  ** INFO: Parameter - ExportPath: 
+2025-08-30 18:30:03.171 :  ** INFO: Parameter - FileNameDelimiter: ~~~~
+2025-08-30 18:30:03.222 :  ** INFO: Parameter - DebugMode: False
+2025-08-30 18:30:03.604 :  ** INFO: AWS CLI v2.x Detected: Version aws-cli/2.28.21 Python/3.13.7 Darwin/24.6.0 source/arm64
+2025-08-30 18:30:03.697 :  ** INFO: PS Version: 7.5.2
+2025-08-30 18:30:03.763 :  ** INFO: PS Module AWS.Tools.Common Missing
+2025-08-30 18:30:03.830 :  ** INFO: PS Module AWSPowerShell Missing
+2025-08-30 18:30:03.900 :  ** INFO: PS Module AWSPowerShell.NetCore Found: Version 5.0.29
+2025-08-30 18:30:03.952 :  ** INFO: ValidateResourcesOnly Selected : Disabling all other collections
+2025-08-30 18:30:04.004 :  ** INFO: Profile evolve Supplied: Validating
+2025-08-30 18:30:06.798 :  ** INFO: Profile evolve Found
+2025-08-30 18:30:07.214 :  ** INFO: Profile: User ID: AIDATNSDHDOVAB6RTZB4N
+2025-08-30 18:30:07.556 :  ** INFO: Profile: Account: 235290434474
+2025-08-30 18:30:07.968 :  ** INFO: Profile: ARN: arn:aws:iam::235290434474:user/pekins
+2025-08-30 18:30:21.620 :  ** INFO: Region us-east-2 has been validated
+2025-08-30 18:34:28.375 :  ** INFO: Setting Script Path: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection

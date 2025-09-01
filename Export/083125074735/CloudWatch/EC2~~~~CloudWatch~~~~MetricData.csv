@@ -1,0 +1,2 @@
+"InstanceId"|"InstanceName"|"InstanceType"|"TimeStamp"|"Metric"|"AvgValue"|"MaxValue"|"SumValue"
+"i-034419e3c67ca1103"|"mvaSourceInstance"|"t3.xlarge"|"08/30/2025 21:27:00"|"CPUUtilization"|"0.616986888155695"|""|"0"

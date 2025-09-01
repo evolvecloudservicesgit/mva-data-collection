@@ -152,7 +152,8 @@ Function ExportData()
         $sql = $sql.replace("@@@@",$database)
 
         TRY {
-            (Invoke-Sql -ServerInstance $server -Database $database -Query $sql) | Export-Csv -Path ("$ExportPath\$FileId$FileNameDelimiter$database$FileNameDelimiter$tableDesc$FileNameDelimiter$datestamp.csv") -Delimiter $Delimiter -NoTypeInformation
+            $path = FormatString -InputString "$ExportPath\$FileId$FileNameDelimiter$database$FileNameDelimiter$tableDesc$FileNameDelimiter$datestamp.csv" 
+            (Invoke-Sql -ServerInstance $server -Database $database -Query $sql) | Export-Csv -Path ($Path) -Delimiter $Delimiter -NoTypeInformation
             LogActivity "** INFO: Exported $FileId$FileNameDelimiter$database$FileNameDelimiter$tableDesc : $server" $False
         } CATCH {
             IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
@@ -179,7 +180,7 @@ Function CleanUpEnvironment()
         }
 
         ## Remove SqlPackage DacPac Media
-        $SqlpackagePath = "$ScriptRoot\Dacpac\"
+        $SqlpackagePath = FormatString -InputString "$ScriptRoot\Dacpac\"
         Set-Location -Path $env:userprofile
 
         IF (test-path $SqlpackagePath) {
@@ -207,7 +208,7 @@ Function CleanUpEnvironment()
         }
 
         ## Remove Directories and CSV files - retains *MVA-Export-ALL-*.zip files
-        $AllItems = Get-ChildItem -Path ("$ExportPath\Export") -Recurse
+        $AllItems = Get-ChildItem -Path ( $(FormatSting -InputString "$ExportPath\Export")) -Recurse
         $Files = $AllItems | Where-Object { -not $_.PSIsContainer }
         $Directories = $AllItems | Where-Object { $_.PSIsContainer }
 
@@ -1250,7 +1251,7 @@ Function CollectConnectionInfoOnly()
                         LogActivity "** ERROR: Configuring database connection collections job : $ErrorMsg" $True
                     }                        
 
-                    $ExportPath = "$ScriptRoot\Export\Connections\$FormattedServer\"
+                    $ExportPath = FormatString -InputString "$ScriptRoot\Export\Connections\$FormattedServer\"
                     IF (!(test-path $ExportPath)) { New-Item -ItemType Directory -Force -Path $ExportPath | Out-Null }
 
                     TRY {
@@ -1260,14 +1261,14 @@ Function CollectConnectionInfoOnly()
                         LogActivity "** ERROR: Collecting [dbo].[Connections] : $ErrorMsg" $True
                     }
                 } Else {
-                    $ExportPath = "$ScriptRoot\Export\$datestamp\$FormattedServer\"
+                    $ExportPath = FormatString -InputString "$ScriptRoot\Export\$datestamp\$FormattedServer\"
                     IF (!(test-path $ExportPath)) { New-Item -ItemType Directory -Force -Path $ExportPath | Out-Null }
                     LogActivity "** INFO: $Server is running Express Edition : No Agent Job can be created" $True
                     ExportData $Server "00.001~ConnectionInfo" $global:TsqlInstance.'00.001~ConnectionInfo' 
                 }
             }
         }
-        Compress-Archive -Path "$ScriptRoot\Export\Connections\" -DestinationPath "$ScriptRoot\Export\$datestamp\$Customer-MVA-Export-Connections.zip" -update
+        Compress-Archive -Path $(FormatString -InputString "$ScriptRoot\Export\Connections\") -DestinationPath $(FormatString -InputString "$ScriptRoot\Export\$datestamp\$Customer-MVA-Export-Connections.zip") -update
         Exit_Script -ErrorRaised $False
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
@@ -1285,7 +1286,8 @@ Function ValidateRegions()
             IF (!([string]::IsNullOrWhiteSpace($region))) { 
                 TRY {
                     $output = ''
-                    $output = Get-EC2Region -RegionName $region
+                    #$output = Get-EC2Region -RegionName $region
+                    $output = aws ec2 describe-regions --filters "Name=region-name,Values=us-east-2" --query 'Regions[0].[RegionName]'
                     IF (!([string]::IsNullOrWhiteSpace($output))) { 
                         IF ($ValidateResourcesOnly) { LogActivity "** INFO: Region $region has been validated" $True } ELSE { LogActivity "** INFO: Region $region has been validated" $False }
                     } Else {
@@ -1321,14 +1323,16 @@ Function ValidateEC2Info
                             IF ([string]::IsNullOrWhiteSpace($output)) {
                                 #$output = aws ec2 describe-instances --instance-ids $instance --region $region
                                 TRY {
-                                    $output = Get-EC2Instance -InstanceId $instance -Region $region 
+                                    #$output = Get-EC2Instance -InstanceId $instance -Region $region 
+                                    $output = aws ec2 describe-instances --instance-ids $instance --region $region | ConvertFrom-JSON
                                 } CATCH {
                                     ## Ignore
                                 }
                             }
                         }
                     }
-                    IF ( (!([string]::IsNullOrWhiteSpace($output))) -and ( $output.Instances.InstanceId -eq $instance )) { 
+                    #IF ( (!([string]::IsNullOrWhiteSpace($output))) -and ( $output.Instances.InstanceId -eq $instance )) { 
+                    IF ( (!([string]::IsNullOrWhiteSpace($output))) -and ( $output.Reservations.Instances.InstanceId -eq $instance )) { 
                         IF ($ValidateResourcesOnly) { LogActivity "** INFO: Instance $instance has been validated" $True } ELSE { LogActivity "** INFO: Instance $instance has been validated" $False }
                     } Else {
                         $Pass = $False
@@ -1342,11 +1346,16 @@ Function ValidateEC2Info
 
                 TRY {
                     ## Locate Private IP for InstanceIDs
-                    $DnsName = $output.Instances.PrivateDnsName  # $output.Instances.PublicDnsName  
+                    #$DnsName = $output.Instances.PrivateDnsName $output.Instances.PublicDnsName  
+                    $DnsName = $output.Reservations.Instances.PrivateDnsName  
+                    $DnsName = $output.Reservations.Instances.PublicDnsName  
+
                     LogActivity "** INFO: Instance $instance Private DNS Name Found: $DnsName" $False
 
-                    IF ($output.Instances.tags.Key -eq "Name") {
-                        $name = $output.Instances.tags | Where-Object { $_.Key -eq "Name" } | Select-Object -expand Value
+                    # IF ($output.Instances.tags.Key -eq "Name") {
+                    #     $name = $output.Instances.tags | Where-Object { $_.Key -eq "Name" } | Select-Object -expand Value                    
+                    IF ($output.Reservations.Instances.tags.Key -eq "Name") {
+                        $name = $output.Reservations.Instances.tags | Where-Object { $_.Key -eq "Name" } | Select-Object -expand Value
                     } Else { 
                         $name = ''
                     }
@@ -1609,9 +1618,9 @@ Function Exit_Script
             Exit
         } Else {
             IF ( ($CollectConnectionsOnly) -or ($ExportDacPacs) -or ($CollectCloudWatchData) -or ($CollectTsqlData) ) {
-                Compress-Archive -Path "$ScriptRoot\Export\$datestamp\" -DestinationPath "$ScriptRoot\Export\$Customer-MVA-Export-ALL-$datestamp.zip"
+                Compress-Archive -Path $(FormatString -InputString "$ScriptRoot\Export\$datestamp\") -DestinationPath $(FormatString -InputString "$ScriptRoot\Export\$Customer-MVA-Export-ALL-$datestamp.zip")
                 LogActivity "** INFO: Data Collection is Complete" $True
-                LogActivity "** INFO: Please review and send zip file $ScriptRoot\Export\$Customer-MVA-Export-ALL-$datestamp.zip to mva@evolvecloudservices.com" $True
+                LogActivity "** INFO: Please review and send zip file $(FormatString -InputString "$ScriptRoot\Export\$Customer-MVA-Export-ALL-$datestamp.zip") to mva@evolvecloudservices.com" $True
             } ElseIf ($CleanUpEnvironment -and $global:Confirmation) {
                 LogActivity "** INFO: Environment CleanUp is Complete" $True
             } ElseIf ($ValidateResourcesOnly) {
@@ -1828,6 +1837,47 @@ Function ScriptVersionCheck()
     }
 } 
 
+Function FormatString()
+{
+    param( 
+        [Parameter(Mandatory=$false)] [String] $InputString, 
+        [Parameter(Mandatory=$false)] [Bool] $Double = $False
+    )
+    TRY {
+        IF ($InputString) {
+            IF (-not [string]::IsNullOrWhiteSpace($InputString)) {
+                IF ($IsWindows) {
+                    $FormattedString = $InputString.Replace("/","\")
+                    $FormattedString = $FormattedString.Replace("\\\\\","\\\\")
+                    $FormattedString = $FormattedString.Replace("\\\\","\\\")
+                    $FormattedString = $FormattedString.Replace("\\\","\\")
+                    $FormattedString = $FormattedString.Replace("\\","\")
+                    IF ($Double) {
+                        $FormattedString = $FormattedString.Replace("\","\\")
+                    }
+                } ElseIf ($IsMacOS -or $IsLinux) {
+                    $FormattedString = $InputString.Replace("\","/")                    
+                    $FormattedString = $FormattedString.Replace("/////","////")
+                    $FormattedString = $FormattedString.Replace("////","///")                    
+                    $FormattedString = $FormattedString.Replace("///","//")
+                    $FormattedString = $FormattedString.Replace("//","/")
+                    IF ($Double) {
+                        $FormattedString = $FormattedString.Replace("/","//")
+                    }
+                } Else {
+                    LogActivity "** ERROR: OS Not Recognized" $True
+                    Exit_Script -ErrorRaised $True
+                }
+            }
+        }
+        Return $FormattedString
+    } CATCH {
+        IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
+        LogActivity "** ERROR: FormatString() : $ErrorMsg" $True
+        Exit_Script -ErrorRaised $True
+    }
+} 
+
 Function Main 
 {
     param( 
@@ -1875,6 +1925,7 @@ Function Main
 
         ## Test ExportPath Override parameter
         IF (!([string]::IsNullOrWhiteSpace($ExportPath))) {
+            $ExportPath = FormatString -InputString $ExportPath
             IF (!(test-path $ExportPath)) { New-Item -ItemType Directory -Force -Path $ExportPath | Out-Null }
             $DefaultScriptRoot = $ScriptRoot
             $ScriptRoot = $ExportPath
@@ -1888,9 +1939,9 @@ Function Main
         ## Initialize Log
         $global:LogFile = $Null
         $datestamp = (Get-Date -Format "MMddyyHHmmss")
-        $LogPath = "$ScriptRoot\Export\$datestamp\Log\"
+        $LogPath = FormatString -InputString "$ScriptRoot\Export\$datestamp\Log\"
         IF (!(test-path $LogPath)) { New-Item -ItemType Directory -Force -Path $LogPath | Out-Null }
-        $global:LogFile = "$LogPath\MVA_Log_$datestamp.log"
+        $global:LogFile = FormatString -InputString "$LogPath\MVA_Log_$datestamp.log"
         LogActivity "** INFO: Logfile Path Set: $global:LogFile" $False
 
         ## Log Script Version
@@ -1931,7 +1982,8 @@ Function Main
             }
         } CATCH {
             IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }             
-            LogActivity "** ERROR: AWS CLI Not Found or Accessible: $ErrorMsg" $True
+            LogActivity "** ERROR: Required - AWS CLI Not Found or Accessible: $ErrorMsg" $True
+            Exit_Script -ErrorRaised $True
         }
 
         ## Check AWS PowerShell Modules Installed
@@ -1939,11 +1991,11 @@ Function Main
             $PSVersion = $PSVersionTable.PSVersion.ToString()
             LogActivity "** INFO: PS Version: $PSVersion" $False
 
-            $AWS_Tools_Common_Version = (Get-InstalledModule -Name AWS.Tools.Common).Version
+            $AWS_Tools_Common_Version = (Get-InstalledModule -Name AWS.Tools.Common).Version 2>$null
             IF ([string]::IsNullOrWhiteSpace($AWS_Tools_Common_Version)) { 
                 LogActivity "** INFO: PS Module AWS.Tools.Common Missing" $False
                 # $InstallNow = Read-Host "Install PowerShell Module: AWS.Tools.Common (Y/N)?"
-                # IF ( ($InstallNow -eq 'Y') -or ($InstallNow -eq 'y') ) {
+                # IF ($InstallNow.ToUpper() -eq 'Y') {
                 #     Install-Module -Name "AWS.Tools.Common" -Force -AllowClobber -Scope CurrentUser
                 # } ELSE {
                 #     Exit_Script -ErrorRaised $True 
@@ -1952,14 +2004,20 @@ Function Main
                 LogActivity "** INFO: PS Module AWS.Tools.Common Found: Version $AWS_Tools_Common_Version" $False
             }
 
-            $AWSPowerShell_Version = (Get-InstalledModule -Name AWSPowerShell).Version
+            $AWSPowerShell_Version = (Get-InstalledModule -Name AWSPowerShell).Version 2>$null
             IF ([string]::IsNullOrWhiteSpace($AWSPowerShell_Version)) { 
                 LogActivity "** INFO: PS Module AWSPowerShell Missing" $False
+                # $InstallNow = Read-Host "Install PowerShell Module: AWSPowerShell (Y/N)?"
+                # IF ($InstallNow.ToUpper() -eq 'Y') {
+                #     Install-Module -Name "AWSPowerShell" -Force -AllowClobber -Scope CurrentUser
+                # } ELSE {
+                #     Exit_Script -ErrorRaised $True 
+                # }   
             } ELSE {
                 LogActivity "** INFO: PS Module AWSPowerShell Found: Version $AWSPowerShell_Version" $False
             }
 
-            $AWSPowerShell_NetCore_Version = (Get-InstalledModule -Name AWSPowerShell.NetCore).Version
+            $AWSPowerShell_NetCore_Version = (Get-InstalledModule -Name AWSPowerShell.NetCore).Version 2>$null
             IF ([string]::IsNullOrWhiteSpace($AWSPowerShell_NetCore_Version)) {
                 LogActivity "** INFO: PS Module AWSPowerShell.NetCore Missing" $False
             } ELSE {
@@ -1968,10 +2026,10 @@ Function Main
         } CATCH {
             IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }           
             LogActivity "** ERROR: Errors Collecting PowerShell Module Statuses: $ErrorMsg" $True
-            Exit_Script $True
+            Exit_Script -ErrorRaised $True
         }
 
-        $ConfigFile = "$DefaultScriptRoot\config.txt"
+        $ConfigFile = FormatString -InputString "$DefaultScriptRoot\config.txt"
 
         IF (!(test-path $ConfigFile)) {     
             LogActivity "** INFO: Config File Not Found : Creating : $ConfigFile" $True
@@ -2068,19 +2126,24 @@ Function Main
             IF ( (!([string]::IsNullOrWhiteSpace($AWSProfile))) -and (!($UseSSOLogin)) ) {
                 [Bool]$ProfileFound = $False
                 LogActivity "** INFO: Profile $AWSProfile Supplied: Validating" $False
-                $storedCredentials = Get-AWSCredential -ListProfileDetail 
+                #$storedCredentials = Get-AWSCredential -ListProfileDetail 
+                $storedCredentials = aws configure list-profiles
                 IF (!([string]::IsNullOrWhiteSpace($storedCredentials))) {
                     ForEach ($Credentials IN $storedCredentials) {
-                        IF ($Credentials.ProfileName -ieq $AWSProfile) {
-                            $AWSProfile = $Credentials.ProfileName  ## Fix Case Sensitive Profile Name Requirement
+                        #IF ($Credentials.ProfileName -ieq $AWSProfile) {
+                        #    $AWSProfile = $Credentials.ProfileName  ## Fix Case Sensitive Profile Name Requirement
+                        IF ($Credentials -ieq $AWSProfile) {
+                            $AWSProfile = $Credentials ## Fix Case Sensitive Profile Name Requirement                            
                             $ProfileFound = $True
                         }
                     }
                 } 
+
                 IF ($ProfileFound) {
-                    Set-AWSCredential -ProfileName $AWSProfile
+                    #Set-AWSCredential -ProfileName $AWSProfile
                     $env:AWS_PROFILE=$AWSProfile
-                    $identity = Get-STSCallerIdentity 2>$null 
+                    #$identity = Get-STSCallerIdentity 2>$null 
+                    $identity = aws sts get-caller-identity | ConvertFrom-JSON
                     IF ($identity) {
                         LogActivity "** INFO: Profile $AWSProfile Found" $False    
                         LogActivity "** INFO: Profile: User ID: $($identity.UserId)" $False 
@@ -2106,19 +2169,25 @@ Function Main
             IF ( (!([string]::IsNullOrWhiteSpace($AWSProfile))) -and $UseSSOLogin ) {
                 [Bool]$ProfileFound = $False
                 LogActivity "** INFO: Profile $AWSProfile Supplied: Validating" $False
-                $storedCredentials = Get-AWSCredential -ListProfileDetail 
+                #$storedCredentials = Get-AWSCredential -ListProfileDetail 
+                $storedCredentials = aws configure list-profiles
                 IF (!([string]::IsNullOrWhiteSpace($storedCredentials))) {
                     ForEach ($Credentials IN $storedCredentials) {
-                        IF ($Credentials.ProfileName -ieq $AWSProfile) {
-                            $AWSProfile = $Credentials.ProfileName  ## Fix Case Sensitive Profile Name Requirement
+                        #IF ($Credentials.ProfileName -ieq $AWSProfile) {
+                        #    $AWSProfile = $Credentials.ProfileName  ## Fix Case Sensitive Profile Name Requirement
+                        IF ($Credentials -ieq $AWSProfile) {
+                            $AWSProfile = $Credentials ## Fix Case Sensitive Profile Name Requirement 
                             $ProfileFound = $True
                         }
                     }
                 } 
                 IF ($ProfileFound) {
                     LogActivity "** INFO: Starting SSO Login Process" $True
-                    Invoke-AWSSSOLogin -ProfileName $AWSProfile
-                    $identity = Get-STSCallerIdentity
+                    aws configure sso --profile $AWSProfile
+                    aws sso login --profile $AWSProfile                  
+                    #Invoke-AWSSSOLogin -ProfileName $AWSProfile
+                    #$identity = Get-STSCallerIdentity
+                    $identity = aws sts get-caller-identity | ConvertFrom-JSON
                     IF ($identity) {
                         LogActivity "** INFO: Profile $AWSProfile Found" $False    
                         LogActivity "** INFO: Profile: User ID: $($identity.UserId)" $False 
@@ -2246,14 +2315,19 @@ Function Main
         IF ($ExportDacPacs -eq $True) { 
 
             TRY {
-                $SqlpackagePath = "$DefaultScriptRoot\Dacpac"
+                $SqlpackagePath = FormatString -InputString "$DefaultScriptRoot\Dacpac"
 
-                IF (!(test-path "$SqlpackagePath\sqlpackage.exe")) {
+                IF (!(test-path $(FormatString -InputString "$SqlpackagePath\sqlpackage.exe"))) {
                     Invoke-Expression "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12"
                     IF (!(test-path $SqlpackagePath)) { New-Item -ItemType Directory -Force -Path $SqlpackagePath | Out-Null }
 
-                    Invoke-WebRequest -Uri "https://aka.ms/sqlpackage-windows" -Outfile "$SqlpackagePath\sqlpackage.zip"
-                    Expand-Archive -Path "$SqlpackagePath\sqlpackage.zip" -DestinationPath "$SqlpackagePath\"
+                    IF ($IsWindows) {
+                        Invoke-WebRequest -Uri "https://aka.ms/sqlpackage-windows" -Outfile $(FormatString -InputString "$SqlpackagePath\sqlpackage.zip")
+                        Expand-Archive -Path $(FormatString -InputString "$SqlpackagePath\sqlpackage.zip") -DestinationPath $(FormatString -InputString "$SqlpackagePath\")
+                    } ElseIf ($IsMacOS -or $IsLinux) {
+                        LogActivity "** ERROR: DacPac Export on MacOS not supported : $ErrorMsg" $True
+                        Exit_Script -ErrorRaised $True                        
+                    }
                 }
 
                 Set-Location $SqlpackagePath
@@ -2267,8 +2341,8 @@ Function Main
                 }
             } CATCH {
                 IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
-                LogActivity "** ERROR: InstallSqlPackage() : $ErrorMsg" $True
-                Exit_Script -ErrorRaised $True
+                    LogActivity "** ERROR: InstallSqlPackage() : $ErrorMsg" $True
+                    Exit_Script -ErrorRaised $True
             }
 
             ForEach ($Server in $global:AllServers)
@@ -2278,14 +2352,14 @@ Function Main
 
                     ## Create Logging Directory
                     $FormattedServer = ( FormatServerName $Server )
-                    $ExportPath = "$ScriptRoot\Export\$datestamp\$FormattedServer\"
+                    $ExportPath = FormatString -InputString "$ScriptRoot\Export\$datestamp\$FormattedServer\"
                     IF (!(test-path $ExportPath)) { New-Item -ItemType Directory -Force -Path $ExportPath | Out-Null }
 
                     TRY {
                         $result = (Invoke-Sql -ServerInstance $Server -Database 'master' -Query "SELECT SERVERPROPERTY('productversion') AS version")
                     } CATCH {
                         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
-                        LogActivity "** ERROR: Determing SQL Version : $ErrorMsg" $True
+                            LogActivity "** ERROR: Determing SQL Version : $ErrorMsg" $True
                         #Exit_Script -ErrorRaised $True
                     }
                     $SqlVersion = $result.version 
@@ -2301,14 +2375,15 @@ Function Main
                                         LogActivity "** INFO: Beginning Export : SQL Database Schema : $Database : $Server" $False
                                         $Output = $Null
                                         $SqlMajorVersion = ($SqlVersion).SubString(0,2)
-                                        $DiagnosticsFile = "$ExportPath\$Database$FileNameDelimiter"+"DacPacDiagnostic.log"
+                                        $DiagnosticsFile = FormatString -InputString "$ExportPath\$Database$FileNameDelimiter"+"DacPacDiagnostic.log"
+                                        $TargetFile = FormatString -InputString "$ExportPath\$Database$FileNameDelimiter$SqlMajorVersion.dacpac"
                                         If (!([string]::IsNullOrWhiteSpace($SqlUser))) {
-                                            $Output = .\SqlPackage /Action:Extract /TargetFile:$ExportPath\$Database$FileNameDelimiter$SqlMajorVersion.dacpac /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractAllTableData=false /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 /SourceUser:$SqlUser /SourcePassword:$SqlPassword
+                                            $Output = .\SqlPackage /Action:Extract /TargetFile:$TargetFile /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractAllTableData=false /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 /SourceUser:$SqlUser /SourcePassword:$SqlPassword
                                         } Else {
-                                            $Output = .\SqlPackage /Action:Extract /TargetFile:$ExportPath\$Database$FileNameDelimiter$SqlMajorVersion.dacpac /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractAllTableData=false  /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 
+                                            $Output = .\SqlPackage /Action:Extract /TargetFile:$TargetFile /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractAllTableData=false  /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 
                                         }
 
-                                        $DacPacConsoleLog = "$ExportPath\$Database$FileNameDelimiter"+"DacPacConsole.log"
+                                        $DacPacConsoleLog = FormatString -InputString "$ExportPath\$Database$FileNameDelimiter"+"DacPacConsole.log"
                                         IF ($Output -like '*Failed to generate SSPI context*') {
                                             $Output | Out-File -FilePath $DacPacConsoleLog
                                             LogActivity "** ERROR: Creating DacPac : Failed to generate SSPI context : $Database" $True
@@ -2362,7 +2437,7 @@ Function Main
                     Else {
                         ## Create Logging Directory
                         $FormattedServer = ( FormatServerName $Server )
-                        $ExportPath = "$ScriptRoot\Export\$datestamp\$FormattedServer\"
+                        $ExportPath = FormatString -InputString "$ScriptRoot\Export\$datestamp\$FormattedServer\"
                         IF (!(test-path $ExportPath)) { New-Item -ItemType Directory -Force -Path $ExportPath | Out-Null }
            
                         ## Loading Version Specific Tsql Scripts into Array
@@ -2438,19 +2513,19 @@ Function Main
         ## Collect CloudWatch Data
         IF ($CollectCloudWatchData -eq $True) {
 
-            $ExportPath = "$ScriptRoot\Export\$datestamp\$FormattedServer\CloudWatch\"
+            $ExportPath = FormatString -InputString "$ScriptRoot\Export\$datestamp\$FormattedServer\CloudWatch\"
             IF (!(test-path $ExportPath)) { New-Item -ItemType Directory -Force -Path $ExportPath | Out-Null }
 
-            $oFileEC2 = "$($ExportPath)\EC2~~~~CloudWatch~~~~MetricData.csv"
+            $oFileEC2 = FormatString -InputString "$ExportPath\EC2~~~~CloudWatch~~~~MetricData.csv"
             IF (Test-Path $oFileEC2) { Remove-Item $oFileEC2 -Force }
 
-            $oFileEBS = "$($ExportPath)\EBS~~~~CloudWatch~~~~MetricData.csv"
+            $oFileEBS = FormatString -InputString "$ExportPath\EBS~~~~CloudWatch~~~~MetricData.csv"
             IF (Test-Path $oFileEBS) { Remove-Item $oFileEBS -Force }
 
-            $oFileFSX = "$($ExportPath)\FSX~~~~CloudWatch~~~~MetricData.csv"
+            $oFileFSX = FormatString -InputString "$ExportPath\FSX~~~~CloudWatch~~~~MetricData.csv"
             IF (Test-Path $oFileFSX) { Remove-Item $oFileFSX -Force }
 
-            $oFileRDS = "$($ExportPath)\RDS~~~~CloudWatch~~~~MetricData.csv"
+            $oFileRDS = FormatString -InputString "$ExportPath\RDS~~~~CloudWatch~~~~MetricData.csv"
             IF (Test-Path $oFileRDS) { Remove-Item $oFileRDS -Force }
 
             '"InstanceId"|"InstanceName"|"InstanceType"|"TimeStamp"|"Metric"|"AvgValue"|"MaxValue"|"SumValue"' | Out-File $oFileEC2 -Append -encoding ASCII
@@ -2467,7 +2542,8 @@ Function Main
                                 IF (!([string]::IsNullOrWhiteSpace($InstanceId))) { 
                                     $output = $Null
                                     TRY {
-                                        $output = Get-EC2Instance -InstanceId $InstanceId -Region $region
+                                        #$output = Get-EC2Instance -InstanceId $InstanceId -Region $region
+                                        $output = aws ec2 describe-instances --instance-ids $InstanceId --region $region | ConvertFrom-JSON
                                     } CATCH {
                                         ## Ignore
                                     }
@@ -2478,31 +2554,35 @@ Function Main
                             }
 
                             $EC2s = $Null
-                            $EC2s = Get-EC2Instance -InstanceId @($InstanceIdArray) -Region $region
-                            ForEach ($EC2 in $EC2s) {
+                            #$EC2s = Get-EC2Instance -InstanceId @($InstanceIdArray) -Region $region
+                            $EC2s = aws ec2 describe-instances --instance-ids @($InstanceIdArray) --region $region | ConvertFrom-JSON
+                            #ForEach ($EC2 in $EC2s) {
+                            ForEach ($EC2 in $EC2s.Reservations) {
                                 $instanceId = $insTags = $instanceName = ""
                                 $instanceId = $EC2.Instances.InstanceId
 
-                                $oFileEC2Config = "$ScriptRoot\Export\$datestamp\$FormattedServer\EC2-$instanceId.json"
-                                ($EC2.Instances | ConvertTo-JSON) | Out-File $oFileEC2Config -encoding ASCII
+                                $oFileEC2Config = FormatString -InputString "$ScriptRoot\Export\$datestamp\$FormattedServer\EC2-$instanceId.json"
+                                ($EC2.Instances | ConvertTo-JSON -Depth 5) | Out-File $oFileEC2Config -encoding ASCII
 
                                 $insTags = $EC2.Instances.Tags
-                                $insType = ($EC2.Instances.InstanceType).Value
+                                #$insType = ($EC2.Instances.InstanceType).Value
+                                $insType = ($EC2.Instances.InstanceType)
                                 IF ($insTags.Key -eq "Name") { 
                                     $instanceName =  $insTags | Where-Object { $_.Key -eq "Name" } | Select-Object -expand Value
                                 }
-                                $dimension = New-Object Amazon.CloudWatch.Model.Dimension
-                                $dimension.set_Name("InstanceId")
-                                $dimension.set_Value($instanceId)
-                    
+                                # $dimension = New-Object Amazon.CloudWatch.Model.Dimension
+                                # $dimension.set_Name("InstanceId")
+                                # $dimension.set_Value($instanceId)
+
                                 $EC2MetricsMaxAvg = ("CPUUtilization").split(",")
                                 ForEach ($Ec2MetricAvg in $EC2MetricsMaxAvg) {
-                                    $eTime =  Get-Date
+                                    [datetime]$eTime = Get-Date
                                     $metric = ($Ec2MetricAvg).Trim()
                                     ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                        $eTime =  (Get-Date).AddDays(($i*-1))
-                                        $sTime =  $eTime.AddDays(-1)
-                                        $Data = Get-CWMetricStatistic -Namespace AWS/EC2 -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension -Region $region
+                                        [datetime]$eTime = (Get-Date).AddDays(($i*-1))
+                                        [datetime]$sTime = $eTime.AddDays(-1)
+                                        #$Data = Get-CWMetricStatistic -Namespace AWS/EC2 -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension -Region $region
+                                        $Data = (aws cloudwatch get-metric-statistics --namespace AWS/EC2 --metric-name $metric --dimensions "Name=InstanceId,Value=$instanceId" --start-time $sTime --end-time $eTime --period 300 --statistics Average Maximum --region $region) | ConvertFrom-JSON
                                         ForEach($d in $Data.Datapoints){
                                             $timeStamp = ""
                                             $timeStamp = $d.TimeStamp
@@ -2516,12 +2596,13 @@ Function Main
                         
                                 $EC2MetricsSum = ("EBSReadOps, EBSWriteOps, EBSReadBytes, EBSWriteBytes").split(",")
                                 ForEach ($EC2MetricSum in $EC2MetricsSum) {
-                                    $eTime =  Get-Date
+                                    [datetime]$eTime =  Get-Date
                                     $metric = ($EC2MetricSum).Trim()
                                     ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                        $eTime =  (Get-Date).AddDays(($i*-1))
-                                        $sTime =  $eTime.AddDays(-1)
-                                        $Data = Get-CWMetricStatistic -Namespace AWS/EC2 -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                        [datetime]$eTime = (Get-Date).AddDays(($i*-1))
+                                        [datetime]$sTime = $eTime.AddDays(-1)
+                                        #$Data = Get-CWMetricStatistic -Namespace AWS/EC2 -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                        $Data = (aws cloudwatch get-metric-statistics --namespace AWS/EC2 --metric-name $metric --dimensions "Name=InstanceId,Value=$instanceId" --start-time $sTime --end-time $eTime --period 300 --statistics Sum --region $region) | ConvertFrom-JSON
                                         ForEach($d in $Data.Datapoints){
                                             $timeStamp = ""
                                             $timeStamp = $d.TimeStamp
@@ -2534,12 +2615,13 @@ Function Main
                     
                                 $EC2MetricsMax = ("NetworkIn, NetworkOut, NetworkPacketsIn, NetworkPacketsOut").split(",")
                                 ForEach ($EC2MetricMax in $EC2MetricsMax) {
-                                    $eTime =  Get-Date
+                                    [datetime]$eTime =  Get-Date
                                     $metric = ($EC2MetricMax).Trim()
                                     ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                        $eTime =  (Get-Date).AddDays(($i*-1))
-                                        $sTime =  $eTime.AddDays(-1)
-                                        $Data = Get-CWMetricStatistic -Namespace AWS/EC2 -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Maximum") -Dimensions $dimension -Region $region
+                                        [datetime]$eTime = (Get-Date).AddDays(($i*-1))
+                                        [datetime]$sTime = $eTime.AddDays(-1)
+                                        #$Data = Get-CWMetricStatistic -Namespace AWS/EC2 -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Maximum") -Dimensions $dimension -Region $region
+                                        $Data = (aws cloudwatch get-metric-statistics --namespace AWS/EC2 --metric-name $metric --dimensions "Name=InstanceId,Value=$instanceId" --start-time $sTime --end-time $eTime --period 300 --statistics Maximum --region $region) | ConvertFrom-JSON
                                         ForEach($d in $Data.Datapoints){
                                             $timeStamp = ""
                                             $timeStamp = $d.TimeStamp
@@ -2551,25 +2633,28 @@ Function Main
                                 }
         
                                 $EBS = $Null
-                                $EBS = (Get-EC2Volume -Region $region) | Where-object {$_.Attachments.InstanceId -eq $instanceId} 
-                                ForEach ($volume in $EBS) {
-                                    $dimension = New-Object Amazon.CloudWatch.Model.Dimension
-                                    $dimension.Name = "VolumeId"
-                                    $dimension.Value = $volume.Attachments.VolumeId
+                                #$EBS = (Get-EC2Volume -Region $region) | Where-object {$_.Attachments.InstanceId -eq $instanceId} 
+                                $EBS = (aws ec2 describe-volumes --filters "Name=attachment.instance-id,Values=$instanceId" --region $region | ConvertFrom-JSON) #| Where-object {$_.Volumes.Attachments.InstanceId -eq $instanceId}
+                                #ForEach ($volume in $EBS) {
+                                ForEach ($volume in $EBS.Volumes) {
+                                    # $dimension = New-Object Amazon.CloudWatch.Model.Dimension
+                                    # $dimension.Name = "VolumeId"
+                                    # $dimension.Value = $volume.Attachments.VolumeId
 
                                     $VolumeId = $volume.Attachments.VolumeId
 
-                                    $oFileEBSConfig = "$ScriptRoot\Export\$datestamp\$FormattedServer\$VolumeId.json"
-                                    ($volume | ConvertTo-JSON) | Out-File $oFileEBSConfig -encoding ASCII    
+                                    $oFileEBSConfig = FormatString -InputString "$ScriptRoot\Export\$datestamp\$FormattedServer\$VolumeId.json"
+                                    ($volume | ConvertTo-JSON -Depth 4) | Out-File $oFileEBSConfig -encoding ASCII    
 
                                     $EBSMetricsSum = ("VolumeReadOps, VolumeWriteOps, VolumeReadBytes, VolumeWriteBytes").split(",")
                                     ForEach ($EBSMetricSum in $EBSMetricsSum) {
-                                        $eTime =  Get-Date
+                                        [datetime]$eTime = Get-Date
                                         $metric = ($EBSMetricSum).Trim()
                                         ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                            $eTime =  (Get-Date).AddDays(($i*-1))
-                                            $sTime =  $eTime.AddDays(-1)
-                                            $Data = Get-CWMetricStatistic -Namespace AWS/EBS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                            [datetime]$eTime = (Get-Date).AddDays(($i*-1))
+                                            [datetime]$sTime = $eTime.AddDays(-1)
+                                            #$Data = Get-CWMetricStatistic -Namespace AWS/EBS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                            $Data = (aws cloudwatch get-metric-statistics --namespace AWS/EBS --metric-name $metric --dimensions "Name=VolumeId,Value=$($volume.Attachments.VolumeId)" --start-time $sTime --end-time $eTime --period 300 --statistics Sum --region $region) | ConvertFrom-JSON
                                             ForEach($d in $Data.Datapoints){
                                                 $timeStamp = ""
                                                 $timeStamp = $d.TimeStamp
@@ -2634,17 +2719,18 @@ Function Main
         
                                 Switch ($FileSystemType) {
                                     "Windows" {
-                                        $oFileFSxConfig = "$ScriptRoot\Export\$datestamp\$FormattedServer\FSx-$FileSystemId.json"
+                                        $oFileFSxConfig = FormatString -InputString "$ScriptRoot\Export\$datestamp\$FormattedServer\FSx-$FileSystemId.json"
                                         $FSxWindowsConfig | Out-File $oFileFSxConfig -encoding ASCII
 
                                         $FSxMetricsSum = ("DataReadBytes, DataWriteBytes, DataWriteOperations, DataReadOperations, MetadataOperations").split(",")
                                         ForEach ($FSxMetricSum in $FSxMetricsSum) {
-                                            $eTime =  Get-Date
+                                            [datetime]$eTime =  Get-Date
                                             $metric = ($FSxMetricSum).Trim()
                                             ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                                $eTime =  (Get-Date).AddDays(($i*-1))
-                                                $sTime =  $eTime.AddDays(-1)
-                                                $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                                [datetime]$eTime =  (Get-Date).AddDays(($i*-1))
+                                                [datetime]$sTime =  $eTime.AddDays(-1)
+                                                #$Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                                $Data = (aws cloudwatch get-metric-statistics --namespace AWS/FSx --metric-name $metric --dimensions "Name=FileSystemId,Value=$FileSystemId" --start-time $sTime --end-time $eTime --period 300 --statistics Sum --region $region) | ConvertFrom-JSON
                                                 ForEach($d in $Data.Datapoints) {
                                                     $timeStamp = ""
                                                     $timeStamp = $d.TimeStamp
@@ -2657,12 +2743,13 @@ Function Main
 
                                         $FSxMetricsMaxAvg = ("ClientConnections").split(",")
                                         ForEach ($FSxMetricMaxAvg in $FSxMetricsMaxAvg) {
-                                            $eTime =  Get-Date
+                                            [datetime]$eTime =  Get-Date
                                             $metric = ($FSxMetricMaxAvg).Trim()
                                             ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                                $eTime =  (Get-Date).AddDays(($i*-1))
-                                                $sTime =  $eTime.AddDays(-1)
-                                                $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension -Region $region
+                                                [datetime]$eTime =  (Get-Date).AddDays(($i*-1))
+                                                [datetime]$sTime =  $eTime.AddDays(-1)
+                                                #$Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension -Region $region
+                                                $Data = (aws cloudwatch get-metric-statistics --namespace AWS/FSx --metric-name $metric --dimensions "Name=FileSystemId,Value=$FileSystemId" --start-time $sTime --end-time $eTime --period 300 --statistics Average Maximum --region $region) | ConvertFrom-JSON
                                                 ForEach($d in $Data.Datapoints) {
                                                     $timeStamp = ""
                                                     $timeStamp = $d.TimeStamp
@@ -2675,7 +2762,7 @@ Function Main
                                         }
                                     }
                                     "ONTAP" {
-                                        $oFileFSxConfig = "$ScriptRoot\Export\$datestamp\$FormattedServer\FSx-$FileSystemId.json"
+                                        $oFileFSxConfig = FormatString -InputString "$ScriptRoot\Export\$datestamp\$FormattedServer\FSx-$FileSystemId.json"
                                         $FSxOntapConfig | Out-File $oFileFSxConfig -encoding ASCII
                 
                                         IF (($FSxOntapConfig | ConvertFrom-JSON).DeploymentType.Value -like "*AZ_1") {
@@ -2689,12 +2776,13 @@ Function Main
                                         $FSxOntapConfig
                                         $FSxMetricsSum = ("NetworkSentBytes,NetworkReceivedBytes,DataReadBytes,DataWriteBytes,DataReadOperations,DataWriteOperations,MetadataOperations,DataReadOperationTime,DataWriteOperationTime,DiskReadBytes,DiskWriteBytes,DiskReadOperations,DiskWriteOperation").split(",")
                                         ForEach ($FSxMetricSum in $FSxMetricsSum) {
-                                            $eTime =  Get-Date
+                                            [datetime]$eTime =  Get-Date
                                             $metric = ($FSxMetricSum).Trim()
                                             ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                                $eTime =  (Get-Date).AddDays(($i*-1))
-                                                $sTime =  $eTime.AddDays(-1)
-                                                $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                                [datetime]$eTime =  (Get-Date).AddDays(($i*-1))
+                                                [datetime]$sTime =  $eTime.AddDays(-1)
+                                                #$Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                                $Data = (aws cloudwatch get-metric-statistics --namespace AWS/FSx --metric-name $metric --dimensions "Name=FileSystemId,Value=$FileSystemId" --start-time $sTime --end-time $eTime --period 300 --statistics Sum --region $region) | ConvertFrom-JSON
                                                 ForEach($d in $Data.Datapoints) {
                                                     $timeStamp = ""
                                                     $timeStamp = $d.TimeStamp
@@ -2707,12 +2795,13 @@ Function Main
                 
                                         $FSxMetricsMaxAvg = ("FileServerCacheHitRatio").split(",")
                                         ForEach ($FSxMetricMaxAvg in $FSxMetricsMaxAvg) {
-                                            $eTime =  Get-Date
+                                            [datetime]$eTime =  Get-Date
                                             $metric = ($FSxMetricMaxAvg).Trim()
                                             ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                                $eTime =  (Get-Date).AddDays(($i*-1))
-                                                $sTime =  $eTime.AddDays(-1)
-                                                $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension -Region $region
+                                                [datetime]$eTime =  (Get-Date).AddDays(($i*-1))
+                                                [datetime]$sTime =  $eTime.AddDays(-1)
+                                                #$Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension -Region $region
+                                                $Data = (aws cloudwatch get-metric-statistics --namespace AWS/FSx --metric-name $metric --dimensions "Name=FileSystemId,Value=$FileSystemId" --start-time $sTime --end-time $eTime --period 300 --statistics Average Maximum --region $region) | ConvertFrom-JSON
                                                 ForEach($d in $Data.Datapoints) {
                                                     $timeStamp = ""
                                                     $timeStamp = $d.TimeStamp
@@ -2728,7 +2817,7 @@ Function Main
                                         #
                                         #    $VolumeId = $_.VolumeId
                                         #
-                                        #    $oFileFSxVolume = "$($ExportPath)\FSx-$FileSystemId-$VolumeId.json"
+                                        #    $oFileFSxVolume = FormatString -InputString "$($ExportPath)\FSx-$FileSystemId-$VolumeId.json"
                                         #    ($_.OntapConfiguration | ConvertTo-JSON) | Out-File $oFileFSxVolume -encoding ASCII
                                         #
                                         #    $VolumeDimension = New-Object Amazon.CloudWatch.Model.Dimension
@@ -2737,12 +2826,13 @@ Function Main
                                         #
                                         #    $FSxVolumeMetricsSum = ("DataReadBytes,DataWriteBytes,DataReadOperations,DataWriteOperations,MetadataOperations,DataReadOperationTime,DataWriteOperationTime,MetadataOperationTime").split(",")
                                         #    $FSxVolumeMetricsSum | % {
-                                        #        $eTime =  Get-Date
+                                        #        [datetime]$eTime =  Get-Date
                                         #        $metric = ($_).Trim()
                                         #        ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                        #            $eTime =  (Get-Date).AddDays(($i*-1))
-                                        #            $sTime =  $eTime.AddDays(-1)
-                                        #            $Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions @($dimension,$VolumeDimension) -Region $region
+                                        #            [datetime]$eTime =  (Get-Date).AddDays(($i*-1))
+                                        #            [datetime]$sTime =  $eTime.AddDays(-1)
+                                        #            #$Data = Get-CWMetricStatistic -Namespace AWS/FSx -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions @($dimension,$VolumeDimension) -Region $region
+                                        #            $Data = (aws cloudwatch get-metric-statistics --namespace AWS/FSx --metric-name $metric --dimensions "Name=FileSystemId,Value=$FileSystemId" --start-time $sTime --end-time $eTime --period 300 --statistics Sum --region $region) | ConvertFrom-JSON
                                         #            ForEach($d in $Data.Datapoints) {
                                         #                $timeStamp = $utlValue = ""
                                         #                $timeStamp = $d.TimeStamp
@@ -2769,54 +2859,68 @@ Function Main
             TRY {
                 ForEach ($region in $Regions) {
                     IF (!([string]::IsNullOrWhiteSpace($region))) {
-                        [System.Array]$RdsFilterValues = $Null
+                        #[System.Array]$RdsFilterValues = $Null
+                        [String]$RdsFilterValues = $Null
                         IF (!([string]::IsNullOrWhiteSpace($RdsInstances))) { 
                             ForEach ($Rds in $RdsInstances) {
                                 IF (!([string]::IsNullOrWhiteSpace($Rds))) { 
                                     $output = $Null
                                     TRY {
-                                        $output = Get-RDSDBInstance -DBInstanceIdentifier $Rds -Region $region
+                                        #$output = Get-RDSDBInstance -DBInstanceIdentifier $Rds -Region $region
+                                        $output = aws rds describe-db-instances --db-instance-identifier $Rds --region $region
                                     } CATCH {
                                         ## Ignore
                                     }
                                     IF (!([string]::IsNullOrWhiteSpace($output))) {
-                                        $RdsFilterValues += $Rds
+                                        #$RdsFilterValues += $Rds
+                                        IF ([string]::IsNullOrWhiteSpace($RdsFilterValues)) {
+                                            $RdsFilterValues = "DBInstances[?DBInstanceIdentifier=='$Rds' "
+                                        } ELSE {
+                                            $RdsFilterValues = $RdsFilterValues + " || DBInstanceIdentifier=='$Rds' " 
+                                        }
+                                        
                                     }
                                 }
-                            }              
+                            }  
+                            $RdsFilterValues = $RdsFilterValues + "]"         
 
                             IF (!([string]::IsNullOrWhiteSpace($RdsFilterValues))) {
-                                $RDSFilter = @{name="db-instance-id"; values=$RdsFilterValues}
+                                #$RDSFilter = @{name="db-instance-id"; values=$RdsFilterValues}
+
+                                #--query "DBInstances[?DBInstanceIdentifier=='rds-ex' || DBInstanceIdentifier=='rds-ec']"
                             
-                                $RDSInstances = Get-RDSDBInstance -Filter $RDSFilter -Region $region 
+                                #$RDSInstances = Get-RDSDBInstance -Filter $RDSFilter -Region $region 
+                                $RDSInstances = aws rds describe-db-instances --query $RdsFilterValues --region $region | ConvertFrom-JSON
                                 ForEach ($RDSInstance in $RDSInstances) {
                                     $DBInstanceIdentifier = $RDSInstance.DBInstanceIdentifier
                                     $DBEngine = $RDSInstance.Engine
 
                                     IF ($DBEngine -like "sqlserver*") {
-                                        $oFileRDSConfig = "$ScriptRoot\Export\$datestamp\$FormattedServer\RDS-$DBInstanceIdentifier.json"
-                                        ($RDSInstance | ConvertTo-JSON) | Out-File $oFileRDSConfig -encoding ASCII
+                                        $oFileRDSConfig = FormatString -InputString "$ScriptRoot\Export\$datestamp\$FormattedServer\RDS-$DBInstanceIdentifier.json"
+                                        ($RDSInstance | ConvertTo-JSON -Depth 4) | Out-File $oFileRDSConfig -encoding ASCII
 
-                                        $dimension = New-Object Amazon.CloudWatch.Model.Dimension
-                                        $dimension.Name = "DBInstanceIdentifier"
-                                        $dimension.Value = $DBInstanceIdentifier
+                                        # $dimension = New-Object Amazon.CloudWatch.Model.Dimension
+                                        # $dimension.Name = "DBInstanceIdentifier"
+                                        # $dimension.Value = $DBInstanceIdentifier
 
                                         IF (-not $RDSInstance.DBParameterGroups.DBParameterGroupName.StartsWith("default.")) {
                                             $DBParameterGroupName = $RDSInstance.DBParameterGroups.DBParameterGroupName
-                                            $oFileCustomParameterGroup = "$ScriptRoot\Export\$datestamp\$FormattedServer\CPG-$DBParameterGroupName.json"
+                                            $oFileCustomParameterGroup = FormatString -InputString "$ScriptRoot\Export\$datestamp\$FormattedServer\CPG-$DBParameterGroupName.json"
 
-                                            $CustomParameterGroup = Get-RDSDBParameter -DBParameterGroupName $DBParameterGroupName -Region $region | ConvertTo-Json
+                                            #$CustomParameterGroup = Get-RDSDBParameter -DBParameterGroupName $DBParameterGroupName -Region $region | ConvertTo-Json
+                                            $CustomParameterGroup = aws rds describe-db-parameters --db-parameter-group-name DBParameterGroupName --region $region
                                             $CustomParameterGroup | Out-File $oFileCustomParameterGroup -encoding ASCII
                                         }
 
                                         $RDSMetricsSum = ("ReadThroughput,WriteThroughput,ReadIOPS,WriteIOPS,ReadLatency,WriteLatency").split(",")
                                         ForEach ($RDSMetricSum in $RDSMetricsSum) {
-                                            $eTime =  Get-Date
+                                            [datetime]$eTime =  Get-Date
                                             $metric = ($RDSMetricSum).Trim()
                                             ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                                $eTime =  (Get-Date).AddDays(($i*-1))
-                                                $sTime =  $eTime.AddDays(-1)
-                                                $Data = Get-CWMetricStatistic -Namespace AWS/RDS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                                [datetime]$eTime =  (Get-Date).AddDays(($i*-1))
+                                                [datetime]$sTime =  $eTime.AddDays(-1)
+                                                #$Data = Get-CWMetricStatistic -Namespace AWS/RDS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Sum") -Dimensions $dimension -Region $region
+                                                $Data = (aws cloudwatch get-metric-statistics --namespace AWS/RDS --metric-name $metric --dimensions "Name=DBInstanceIdentifier,Value=$DBInstanceIdentifier" --start-time $sTime --end-time $eTime --period 300 --statistics Sum --region $region) | ConvertFrom-JSON
                                                 ForEach($d in $Data.Datapoints){
                                                     $timeStamp = ""
                                                     $timeStamp = $d.TimeStamp
@@ -2829,12 +2933,13 @@ Function Main
 
                                         $RDSMetricsAvgMax = ("DatabaseConnections,CPUUtilization").split(",")
                                         ForEach ($RDSMetricAvgMax in $RDSMetricsAvgMax) {                                
-                                            $eTime =  Get-Date
+                                            [datetime]$eTime =  Get-Date
                                             $metric = ($RDSMetricAvgMax).Trim()
                                             ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                                $eTime =  (Get-Date).AddDays(($i*-1))
-                                                $sTime =  $eTime.AddDays(-1)
-                                                $Data = Get-CWMetricStatistic -Namespace AWS/RDS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension -Region $region
+                                                [datetime]$eTime =  (Get-Date).AddDays(($i*-1))
+                                                [datetime]$sTime =  $eTime.AddDays(-1)
+                                                #$Data = Get-CWMetricStatistic -Namespace AWS/RDS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Average","Maximum") -Dimensions $dimension -Region $region
+                                                $Data = (aws cloudwatch get-metric-statistics --namespace AWS/RDS --metric-name $metric --dimensions "Name=DBInstanceIdentifier,Value=$DBInstanceIdentifier" --start-time $sTime --end-time $eTime --period 300 --statistics Average Maximum --region $region) | ConvertFrom-JSON
                                                 ForEach($d in $Data.Datapoints){
                                                     $timeStamp = ""
                                                     $timeStamp = $d.TimeStamp
@@ -2848,12 +2953,13 @@ Function Main
 
                                         $RDSMetricsMax = ("NetworkReceiveThroughput,NetworkTransmitThroughput").split(",")
                                         ForEach ($RDSMetricMax in $RDSMetricsMax) {     
-                                            $eTime =  Get-Date
+                                            [datetime]$eTime =  Get-Date
                                             $metric = ($RDSMetricMax).Trim()
                                             ForEach ($i in 0..$CloudWatchCollectionPeriod) {
-                                                $eTime =  (Get-Date).AddDays(($i*-1))
-                                                $sTime =  $eTime.AddDays(-1)
-                                                $Data = Get-CWMetricStatistic -Namespace AWS/RDS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Maximum") -Dimensions $dimension -Region $region 
+                                                [datetime]$eTime =  (Get-Date).AddDays(($i*-1))
+                                                [datetime]$sTime =  $eTime.AddDays(-1)
+                                                #$Data = Get-CWMetricStatistic -Namespace AWS/RDS -MetricName $metric -StartTime $sTime -EndTime $eTime -Period 300 -Statistics @("Maximum") -Dimensions $dimension -Region $region 
+                                                $Data = (aws cloudwatch get-metric-statistics --namespace AWS/RDS --metric-name $metric --dimensions "Name=DBInstanceIdentifier,Value=$DBInstanceIdentifier" --start-time $sTime --end-time $eTime --period 300 --statistics Maximum --region $region) | ConvertFrom-JSON
                                                 ForEach($d in $Data.Datapoints){
                                                     $timeStamp = ""
                                                     $timeStamp = $d.TimeStamp
@@ -2893,41 +2999,41 @@ TRY {
     Clear-Host
     $Error.Clear()
 
-    Main -CollectConnectionsOnly $CollectConnectionsOnly        `
-        -ExportDacPacs $ExportDacPacs                           `
-        -CollectCloudWatchData $CollectCloudWatchData           `
-        -CollectTsqlData $CollectTsqlData                       `
-        -CleanUpEnvironment $CleanUpEnvironment                 `
-        -SqlServerConnectionTimeout $SqlServerConnectionTimeout `
-        -SqlServerQueryTimeout $SqlServerQueryTimeout           `
-        -CloudWatchCollectionPeriod $CloudWatchCollectionPeriod `
-        -IncludeAllMsgs $IncludeAllMsgs                         `
-        -ValidateResourcesOnly $ValidateResourcesOnly           `
-        -AWSProfile $AWSProfile                                 `
-        -UseSSOLogin $UseSSOLogin                               `
-        -SqlUser $SqlUser                                       `
-        -SqlPassword $SqlPassword                               `
-        -ExportPath $ExportPath                                 `
-        -FileNameDelimiter $FileNameDelimiter                   `
-        -DebugMode $DebugMode 
+    # Main -CollectConnectionsOnly $CollectConnectionsOnly        `
+    #     -ExportDacPacs $ExportDacPacs                           `
+    #     -CollectCloudWatchData $CollectCloudWatchData           `
+    #     -CollectTsqlData $CollectTsqlData                       `
+    #     -CleanUpEnvironment $CleanUpEnvironment                 `
+    #     -SqlServerConnectionTimeout $SqlServerConnectionTimeout `
+    #     -SqlServerQueryTimeout $SqlServerQueryTimeout           `
+    #     -CloudWatchCollectionPeriod $CloudWatchCollectionPeriod `
+    #     -IncludeAllMsgs $IncludeAllMsgs                         `
+    #     -ValidateResourcesOnly $ValidateResourcesOnly           `
+    #     -AWSProfile $AWSProfile                                 `
+    #     -UseSSOLogin $UseSSOLogin                               `
+    #     -SqlUser $SqlUser                                       `
+    #     -SqlPassword $SqlPassword                               `
+    #     -ExportPath $ExportPath                                 `
+    #     -FileNameDelimiter $FileNameDelimiter                   `
+    #     -DebugMode $DebugMode 
 
-    # Main -CollectConnectionsOnly $False `
-    #     -ExportDacPacs $False `
-    #     -CollectCloudWatchData $False `
-    #     -CollectTsqlData $False `
-    #     -CleanUpEnvironment $False `
-    #     -SqlServerConnectionTimeout 300 `
-    #     -SqlServerQueryTimeout 5 `
-    #     -CloudWatchCollectionPeriod 30 `
-    #     -IncludeAllMsgs $False `
-    #     -ValidateResourcesOnly $True `
-    #     -AWSProfile '' `
-    #     -UseSSOLogin $False `
-    #     -SqlUser '' `
-    #     -SqlPassword '' `
-    #     -ExportPath '' `
-    #     -FileNameDelimiter '~~~~' `
-    #     -DebugMode $False
+    Main -CollectConnectionsOnly $False `
+        -ExportDacPacs $False `
+        -CollectCloudWatchData $False `
+        -CollectTsqlData $true `
+        -CleanUpEnvironment $False `
+        -SqlServerConnectionTimeout 300 `
+        -SqlServerQueryTimeout 5 `
+        -CloudWatchCollectionPeriod 30 `
+        -IncludeAllMsgs $true `
+        -ValidateResourcesOnly $False `
+        -AWSProfile 'evolve' `
+        -UseSSOLogin $False `
+        -SqlUser 'admin' `
+        -SqlPassword 'Pa$$w0rd' `
+        -ExportPath '' `
+        -FileNameDelimiter '~~~~' `
+        -DebugMode $true
 
 } CATCH {
     IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }

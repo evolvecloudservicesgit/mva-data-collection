@@ -1,0 +1,62 @@
+2025-08-31 11:21:28.816 :  ** INFO: Logfile Path Set: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection/Export/083125112128/Log/MVA_Log_083125112128.log
+2025-08-31 11:21:28.868 :  ** INFO: MVA Data Collection Script - Version : 1.0.8
+2025-08-31 11:21:29.353 :  ** INFO: Parameter - CollectConnectionsOnly: False
+2025-08-31 11:21:29.407 :  ** INFO: Parameter - ExportDacPacs: False
+2025-08-31 11:21:29.461 :  ** INFO: Parameter - CollectCloudWatchData: True
+2025-08-31 11:21:29.514 :  ** INFO: Parameter - CollectTsqlData: False
+2025-08-31 11:21:29.567 :  ** INFO: Parameter - CleanUpEnvironment: False
+2025-08-31 11:21:29.635 :  ** INFO: Parameter - SqlServerConnectionTimeout: 300
+2025-08-31 11:21:29.688 :  ** INFO: Parameter - SqlServerQueryTimeout: 5
+2025-08-31 11:21:29.741 :  ** INFO: Parameter - CloudWatchCollectionPeriod: 30
+2025-08-31 11:21:29.795 :  ** INFO: Parameter - IncludeAllMsgs: True
+2025-08-31 11:21:29.847 :  ** INFO: Parameter - ValidateResourcesOnly: False
+2025-08-31 11:21:29.900 :  ** INFO: Parameter - AWSProfile: evolve
+2025-08-31 11:21:29.954 :  ** INFO: Parameter - UseSSOLogin: False
+2025-08-31 11:21:30.007 :  ** INFO: Parameter - SqlUser: admin
+2025-08-31 11:21:30.060 :  ** INFO: Parameter - SqlPassword: *********
+2025-08-31 11:21:30.113 :  ** INFO: Parameter - ExportPath: 
+2025-08-31 11:21:30.165 :  ** INFO: Parameter - FileNameDelimiter: ~~~~
+2025-08-31 11:21:30.216 :  ** INFO: Parameter - DebugMode: True
+2025-08-31 11:21:30.502 :  ** INFO: AWS CLI v2.x Detected: Version aws-cli/2.28.21 Python/3.13.7 Darwin/24.6.0 source/arm64
+2025-08-31 11:21:30.553 :  ** INFO: PS Version: 7.5.2
+2025-08-31 11:21:30.632 :  ** INFO: PS Module AWS.Tools.Common Missing
+2025-08-31 11:21:30.699 :  ** INFO: PS Module AWSPowerShell Missing
+2025-08-31 11:21:30.770 :  ** INFO: PS Module AWSPowerShell.NetCore Found: Version 5.0.29
+2025-08-31 11:21:30.822 :  ** INFO: Profile evolve Supplied: Validating
+2025-08-31 11:21:31.515 :  ** INFO: Profile evolve Found
+2025-08-31 11:21:31.567 :  ** INFO: Profile: User ID: AIDATNSDHDOVAB6RTZB4N
+2025-08-31 11:21:31.618 :  ** INFO: Profile: Account: 235290434474
+2025-08-31 11:21:31.670 :  ** INFO: Profile: ARN: arn:aws:iam::235290434474:user/pekins
+2025-08-31 11:21:32.241 :  ** INFO: Region us-east-2 has been validated
+2025-08-31 11:21:32.867 :  ** INFO: RDS Node rds-ex has been validated
+2025-08-31 11:21:33.408 :  ** INFO: RDS Node rds-ex1 has been validated
+2025-08-31 11:21:33.461 :  ** INFO: No TSQL Data Collection Specified : Skipping SQL Connectivity Test
+2025-08-31 11:21:33.512 :  ** INFO: Database Tsql Filter Created : SELECT [name] FROM [master].[sys].[databases] 
+                    WHERE source_database_id IS NULL 
+                        and [name] NOT IN('model','tempdb','master','msdb','distribution','ssisdb','rdsadmin','MVA-Data-Collection') 
+                        and [name] NOT LIKE '%ReportServer%' 
+                        and state_desc = 'ONLINE'  ORDER BY Name
+2025-08-31 11:21:47.866 :  ** INFO: Exported RDS CW Metric ReadThroughput : rds-ex
+2025-08-31 11:22:00.493 :  ** INFO: Exported RDS CW Metric WriteThroughput : rds-ex
+2025-08-31 11:22:13.529 :  ** INFO: Exported RDS CW Metric ReadIOPS : rds-ex
+2025-08-31 11:22:26.082 :  ** INFO: Exported RDS CW Metric WriteIOPS : rds-ex
+2025-08-31 11:22:38.725 :  ** INFO: Exported RDS CW Metric ReadLatency : rds-ex
+2025-08-31 11:22:51.487 :  ** INFO: Exported RDS CW Metric WriteLatency : rds-ex
+2025-08-31 11:23:04.583 :  ** INFO: Exported RDS CW Metric DatabaseConnections : rds-ex
+2025-08-31 11:23:17.432 :  ** INFO: Exported RDS CW Metric CPUUtilization : rds-ex
+2025-08-31 11:23:30.047 :  ** INFO: Exported RDS CW Metric NetworkReceiveThroughput : rds-ex
+2025-08-31 11:23:42.945 :  ** INFO: Exported RDS CW Metric NetworkTransmitThroughput : rds-ex
+2025-08-31 11:23:55.230 :  ** INFO: Exported RDS CW Metric ReadThroughput : rds-ex1
+2025-08-31 11:24:07.668 :  ** INFO: Exported RDS CW Metric WriteThroughput : rds-ex1
+2025-08-31 11:24:20.619 :  ** INFO: Exported RDS CW Metric ReadIOPS : rds-ex1
+2025-08-31 11:24:33.547 :  ** INFO: Exported RDS CW Metric WriteIOPS : rds-ex1
+2025-08-31 11:24:46.124 :  ** INFO: Exported RDS CW Metric ReadLatency : rds-ex1
+2025-08-31 11:24:58.754 :  ** INFO: Exported RDS CW Metric WriteLatency : rds-ex1
+2025-08-31 11:25:26.819 :  ** INFO: Exported RDS CW Metric DatabaseConnections : rds-ex1
+2025-08-31 11:25:43.137 :  ** INFO: Exported RDS CW Metric CPUUtilization : rds-ex1
+2025-08-31 11:25:55.668 :  ** INFO: Exported RDS CW Metric NetworkReceiveThroughput : rds-ex1
+2025-08-31 11:26:08.191 :  ** INFO: Exported RDS CW Metric NetworkTransmitThroughput : rds-ex1
+2025-08-31 11:26:25.849 :  ** INFO: Data Collection is Complete
+2025-08-31 11:26:25.901 :  ** INFO: Please review and send zip file /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection/Export/Acme-MVA-Export-ALL-083125112128.zip to mva@evolvecloudservices.com
+2025-08-31 11:27:02.203 :  ** INFO: Debug Mode Enabled
+2025-08-31 11:27:02.254 :  ** INFO: Setting Script Path: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection

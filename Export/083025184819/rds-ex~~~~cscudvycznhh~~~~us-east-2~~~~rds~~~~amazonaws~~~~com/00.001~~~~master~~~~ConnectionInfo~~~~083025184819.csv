@@ -1,0 +1,4 @@
+"SQLInstance"|"ClientAddress"|"ProgramName"|"HostName"|"LoginName"|"ConnectionCount"|"collect_date"
+"EC2AMAZ-2A4D56D"|"<local machine>"|"RdsAdminService"|"EC2AMAZ-2A4D56D"|"NT AUTHORITY\SYSTEM"|"14"|"8/30/2025 11:48:26 PM"
+"EC2AMAZ-2A4D56D"|"10.0.1.239"|"RdsAdminService"|"EC2AMAZ-2A4D56D"|"NT AUTHORITY\SYSTEM"|"3"|"8/30/2025 11:48:26 PM"
+"EC2AMAZ-2A4D56D"|"65.30.225.3"|"Core .Net SqlClient Data Provider"|"Mac"|"admin"|"1"|"8/30/2025 11:48:26 PM"

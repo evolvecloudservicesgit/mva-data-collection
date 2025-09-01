@@ -1,0 +1,27 @@
+{
+  "AvailabilityZoneId": "use2-az1",
+  "Iops": 3000,
+  "VolumeType": "gp3",
+  "MultiAttachEnabled": false,
+  "Throughput": 125,
+  "Operator": {
+    "Managed": false
+  },
+  "VolumeId": "vol-0442aa55f71d378a6",
+  "Size": 30,
+  "SnapshotId": "snap-09bc37c4d55b7c706",
+  "AvailabilityZone": "us-east-2a",
+  "State": "in-use",
+  "CreateTime": "2025-08-13T10:03:44.683-05:00",
+  "Attachments": [
+    {
+      "DeleteOnTermination": true,
+      "VolumeId": "vol-0442aa55f71d378a6",
+      "InstanceId": "i-041f169de8a947192",
+      "Device": "/dev/sda1",
+      "State": "attached",
+      "AttachTime": "2025-08-13T10:03:44-05:00"
+    }
+  ],
+  "Encrypted": false
+}

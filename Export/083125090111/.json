@@ -1,0 +1,18 @@
+{
+  "AvailabilityZoneId": "use2-az1",
+  "Iops": 3000,
+  "VolumeType": "gp3",
+  "MultiAttachEnabled": false,
+  "Throughput": 125,
+  "Operator": {
+    "Managed": false
+  },
+  "VolumeId": "vol-06c02494b9b39d6c4",
+  "Size": 30,
+  "SnapshotId": "",
+  "AvailabilityZone": "us-east-2a",
+  "State": "available",
+  "CreateTime": "2025-08-13T09:39:35.207-05:00",
+  "Attachments": [],
+  "Encrypted": false
+}

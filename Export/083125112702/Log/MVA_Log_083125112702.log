@@ -1,0 +1,103 @@
+2025-08-31 11:27:02.315 :  ** INFO: Logfile Path Set: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection/Export/083125112702/Log/MVA_Log_083125112702.log
+2025-08-31 11:27:02.366 :  ** INFO: MVA Data Collection Script - Version : 1.0.8
+2025-08-31 11:27:02.778 :  ** INFO: Parameter - CollectConnectionsOnly: False
+2025-08-31 11:27:02.830 :  ** INFO: Parameter - ExportDacPacs: False
+2025-08-31 11:27:02.884 :  ** INFO: Parameter - CollectCloudWatchData: False
+2025-08-31 11:27:02.937 :  ** INFO: Parameter - CollectTsqlData: True
+2025-08-31 11:27:02.990 :  ** INFO: Parameter - CleanUpEnvironment: False
+2025-08-31 11:27:03.044 :  ** INFO: Parameter - SqlServerConnectionTimeout: 300
+2025-08-31 11:27:03.098 :  ** INFO: Parameter - SqlServerQueryTimeout: 5
+2025-08-31 11:27:03.151 :  ** INFO: Parameter - CloudWatchCollectionPeriod: 30
+2025-08-31 11:27:03.204 :  ** INFO: Parameter - IncludeAllMsgs: True
+2025-08-31 11:27:03.256 :  ** INFO: Parameter - ValidateResourcesOnly: False
+2025-08-31 11:27:03.309 :  ** INFO: Parameter - AWSProfile: evolve
+2025-08-31 11:27:03.361 :  ** INFO: Parameter - UseSSOLogin: False
+2025-08-31 11:27:03.413 :  ** INFO: Parameter - SqlUser: admin
+2025-08-31 11:27:03.467 :  ** INFO: Parameter - SqlPassword: *********
+2025-08-31 11:27:03.520 :  ** INFO: Parameter - ExportPath: 
+2025-08-31 11:27:03.572 :  ** INFO: Parameter - FileNameDelimiter: ~~~~
+2025-08-31 11:27:03.627 :  ** INFO: Parameter - DebugMode: True
+2025-08-31 11:27:03.910 :  ** INFO: AWS CLI v2.x Detected: Version aws-cli/2.28.21 Python/3.13.7 Darwin/24.6.0 source/arm64
+2025-08-31 11:27:03.962 :  ** INFO: PS Version: 7.5.2
+2025-08-31 11:27:04.047 :  ** INFO: PS Module AWS.Tools.Common Missing
+2025-08-31 11:27:04.115 :  ** INFO: PS Module AWSPowerShell Missing
+2025-08-31 11:27:04.185 :  ** INFO: PS Module AWSPowerShell.NetCore Found: Version 5.0.29
+2025-08-31 11:27:04.237 :  ** INFO: Profile evolve Supplied: Validating
+2025-08-31 11:27:04.928 :  ** INFO: Profile evolve Found
+2025-08-31 11:27:04.982 :  ** INFO: Profile: User ID: AIDATNSDHDOVAB6RTZB4N
+2025-08-31 11:27:05.033 :  ** INFO: Profile: Account: 235290434474
+2025-08-31 11:27:05.085 :  ** INFO: Profile: ARN: arn:aws:iam::235290434474:user/pekins
+2025-08-31 11:27:05.687 :  ** INFO: Region us-east-2 has been validated
+2025-08-31 11:27:06.250 :  ** INFO: RDS Node rds-ex has been validated
+2025-08-31 11:27:06.809 :  ** INFO: RDS Node rds-ex1 has been validated
+2025-08-31 11:27:07.336 :  ** INFO: RDS Instance rds-ex SQL Connectivity has been validated
+2025-08-31 11:27:07.409 :  ** INFO: DNS Lookup for rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com : 3.150.45.6
+2025-08-31 11:27:07.902 :  ** INFO: RDS Instance rds-ex1 SQL Connectivity has been validated
+2025-08-31 11:27:07.962 :  ** INFO: DNS Lookup for rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com : 3.139.220.153
+2025-08-31 11:27:08.015 :  ** INFO: Database Tsql Filter Created : SELECT [name] FROM [master].[sys].[databases] 
+                    WHERE source_database_id IS NULL 
+                        and [name] NOT IN('model','tempdb','master','msdb','distribution','ssisdb','rdsadmin','MVA-Data-Collection') 
+                        and [name] NOT LIKE '%ReportServer%' 
+                        and state_desc = 'ONLINE'  ORDER BY Name
+2025-08-31 11:27:08.070 :  ** INFO: Collecting SQL Data: rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:08.429 :  ** INFO: Exported 15.003~~~~master~~~~sys_server_audits : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:08.581 :  ** INFO: Exported 16.002~~~~master~~~~sys_server_audit_specifications : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:08.782 :  ** INFO: Exported 17.001~~~~master~~~~sys_server_audit_specification_details : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:08.965 :  ** INFO: Exported 07.001~~~~master~~~~sys_availability_read_only_routing_lists : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:09.156 :  ** INFO: Exported 00.001~~~~master~~~~ConnectionInfo : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:09.296 :  ** INFO: Exported 11.001~~~~master~~~~sys_availability_databases_cluster : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:09.460 :  ** INFO: Exported 02.001~~~~master~~~~sys_configurations : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:09.669 :  ** INFO: Exported 03.006~~~~master~~~~sys_databases : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:09.845 :  ** INFO: Exported 04.001~~~~master~~~~sys_master_files : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:09.998 :  ** INFO: Exported 45.001~~~~master~~~~trace_flags : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:10.700 :  ** INFO: Exported 44.001~~~~master~~~~sys_dm_os_performance_counters : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:10.945 :  ** INFO: Exported 05.001~~~~master~~~~DatabaseIOInfo : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:11.064 :  ** INFO: Exported 09.001~~~~master~~~~sys_dm_hadr_availability_replica_cluster_states : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:11.151 :  ** INFO: Exported 01.001~~~~master~~~~SqlVersionInfo : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:11.298 :  ** INFO: Exported 10.003~~~~master~~~~sys_dm_hadr_database_replica_states : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:11.420 :  ** INFO: Exported 12.004~~~~master~~~~sys_availability_groups : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:11.541 :  ** INFO: Exported 46.001~~~~master~~~~sys_dm_os_process_memory : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:11.659 :  ** INFO: Exported 08.001~~~~master~~~~sys_dm_hadr_availability_replica_cluster_nodes : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:11.810 :  ** INFO: Exported 14.001~~~~master~~~~sys_database_mirroring : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:11.986 :  ** INFO: Exported 40.001~~~~master~~~~linkedservers : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:12.137 :  ** INFO: Exported 13.003~~~~master~~~~sys_dm_hadr_availability_replica_states : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:12.339 :  ** INFO: Exported 06.003~~~~master~~~~sys_availability_replicas : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:13.142 :  ** INFO: Exported 20.001~~~~sampledb~~~~sys_database_audit_specification_details : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:13.313 :  ** INFO: Exported 23.001~~~~sampledb~~~~sys_partition_functions : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:13.596 :  ** INFO: Exported 27.001~~~~sampledb~~~~sys_partitions : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:13.781 :  ** INFO: Exported 43.001~~~~sampledb~~~~underutilized_NC_indexes : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:14.097 :  ** INFO: Exported 21.001~~~~sampledb~~~~IndexInfoNonClustered : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:14.356 :  ** INFO: Exported 22.001~~~~sampledb~~~~IndexInfoHeapClustered : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:14.453 :  ** INFO: Exported 18.001~~~~sampledb~~~~DatabaseSizeInfo : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:14.598 :  ** INFO: Exported 19.001~~~~sampledb~~~~sys_database_audit_specifications : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:14.761 :  ** INFO: Exported 26.001~~~~sampledb~~~~sys_partition_schemes : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:14.912 :  ** INFO: Exported 24.001~~~~sampledb~~~~sys_partition_range_values : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:15.066 :  ** INFO: Exported 42.001~~~~sampledb~~~~index_read_write_stats : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:15.230 :  ** INFO: Exported 25.001~~~~sampledb~~~~sys_partition_parameters : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:15.405 :  ** INFO: Exported 28.001~~~~sampledb~~~~sys_objects : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:15.604 :  ** INFO: Exported 41.001~~~~sampledb~~~~missing_indexes : rds-ex.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:15.868 :  ** INFO: Collecting SQL Data: rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:16.146 :  ** INFO: Exported 15.003~~~~master~~~~sys_server_audits : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:16.241 :  ** INFO: Exported 16.002~~~~master~~~~sys_server_audit_specifications : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:16.377 :  ** INFO: Exported 17.001~~~~master~~~~sys_server_audit_specification_details : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:16.484 :  ** INFO: Exported 07.001~~~~master~~~~sys_availability_read_only_routing_lists : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:16.597 :  ** INFO: Exported 00.001~~~~master~~~~ConnectionInfo : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:16.695 :  ** INFO: Exported 11.001~~~~master~~~~sys_availability_databases_cluster : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:16.799 :  ** INFO: Exported 02.001~~~~master~~~~sys_configurations : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:16.950 :  ** INFO: Exported 03.006~~~~master~~~~sys_databases : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:17.052 :  ** INFO: Exported 04.001~~~~master~~~~sys_master_files : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:17.178 :  ** INFO: Exported 45.001~~~~master~~~~trace_flags : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:17.757 :  ** INFO: Exported 44.001~~~~master~~~~sys_dm_os_performance_counters : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:17.909 :  ** INFO: Exported 05.001~~~~master~~~~DatabaseIOInfo : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:17.998 :  ** INFO: Exported 09.001~~~~master~~~~sys_dm_hadr_availability_replica_cluster_states : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:18.090 :  ** INFO: Exported 01.001~~~~master~~~~SqlVersionInfo : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:18.304 :  ** INFO: Exported 10.003~~~~master~~~~sys_dm_hadr_database_replica_states : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:18.402 :  ** INFO: Exported 12.004~~~~master~~~~sys_availability_groups : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:18.499 :  ** INFO: Exported 46.001~~~~master~~~~sys_dm_os_process_memory : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:18.595 :  ** INFO: Exported 08.001~~~~master~~~~sys_dm_hadr_availability_replica_cluster_nodes : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:18.716 :  ** INFO: Exported 14.001~~~~master~~~~sys_database_mirroring : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:18.840 :  ** INFO: Exported 40.001~~~~master~~~~linkedservers : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:18.958 :  ** INFO: Exported 13.003~~~~master~~~~sys_dm_hadr_availability_replica_states : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:19.085 :  ** INFO: Exported 06.003~~~~master~~~~sys_availability_replicas : rds-ex1.cscudvycznhh.us-east-2.rds.amazonaws.com
+2025-08-31 11:27:19.447 :  ** INFO: Data Collection is Complete
+2025-08-31 11:27:19.498 :  ** INFO: Please review and send zip file /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection/Export/Acme-MVA-Export-ALL-083125112702.zip to mva@evolvecloudservices.com

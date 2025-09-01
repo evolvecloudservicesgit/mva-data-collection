@@ -1,0 +1,3 @@
+"SQLInstance"|"audit_id"|"name"|"audit_guid"|"create_date"|"modify_date"|"principal_id"|"type"|"type_desc"|"on_failure"|"on_failure_desc"|"is_state_enabled"|"queue_delay"|"predicate"|"is_operator_audit"
+"EC2AMAZ-2A4D56D"|"65536"|"RDS_DAS_AUDIT"|"20250828-1151-4844-7202-508281151484"|"8/30/2025 8:20:04 PM"|"8/30/2025 8:20:04 PM"|"1"|"FL"|"FILE"|"0"|"CONTINUE"|"False"|"1000"|"([server_principal_name]<>'NT AUTHORITY\SYSTEM' AND [database_name]<>'rdsadmin' AND [server_principal_name]<>'rdssec' AND [server_principal_name]<>'rdsproxyadmin')"|""
+"EC2AMAZ-2A4D56D"|"65537"|"RDS_DAS_CHANGES"|"90568f4a-494a-4b0d-85e5-17641bc7dde3"|"8/30/2025 8:20:04 PM"|"8/30/2025 8:20:04 PM"|"1"|"FL"|"FILE"|"0"|"CONTINUE"|"False"|"1000"|"([object_name] like 'RDS_DAS_%')"|""

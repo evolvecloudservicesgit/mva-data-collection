@@ -1,0 +1,2 @@
+"SQLInstance"|"physical_memory_in_use_kb"|"large_page_allocations_kb"|"locked_page_allocations_kb"|"total_virtual_address_space_kb"|"virtual_address_space_reserved_kb"|"virtual_address_space_committed_kb"|"virtual_address_space_available_kb"|"page_fault_count"|"memory_utilization_percentage"|"available_commit_limit_kb"|"process_physical_memory_low"|"process_virtual_memory_low"
+"EC2AMAZ-KU3O7DJ"|"56260"|"0"|"1664"|"137438953344"|"4852716"|"295596"|"137434100628"|"214880"|"48"|"609804"|"True"|"False"

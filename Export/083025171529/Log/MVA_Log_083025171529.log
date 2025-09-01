@@ -1,0 +1,23 @@
+2025-08-30 17:15:29.270 :  ** INFO: Logfile Path Set: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection/Export/083025171529/Log/MVA_Log_083025171529.log
+2025-08-30 17:15:29.322 :  ** INFO: MVA Data Collection Script - Version : 1.0.8
+2025-08-30 17:15:29.686 :  ** INFO: Parameter - CollectConnectionsOnly: False
+2025-08-30 17:15:29.738 :  ** INFO: Parameter - ExportDacPacs: False
+2025-08-30 17:15:29.790 :  ** INFO: Parameter - CollectCloudWatchData: False
+2025-08-30 17:15:29.843 :  ** INFO: Parameter - CollectTsqlData: False
+2025-08-30 17:15:29.895 :  ** INFO: Parameter - CleanUpEnvironment: False
+2025-08-30 17:15:29.946 :  ** INFO: Parameter - SqlServerConnectionTimeout: 300
+2025-08-30 17:15:29.999 :  ** INFO: Parameter - SqlServerQueryTimeout: 5
+2025-08-30 17:15:30.053 :  ** INFO: Parameter - CloudWatchCollectionPeriod: 30
+2025-08-30 17:15:30.107 :  ** INFO: Parameter - IncludeAllMsgs: True
+2025-08-30 17:15:30.184 :  ** INFO: Parameter - ValidateResourcesOnly: True
+2025-08-30 17:15:30.236 :  ** INFO: Parameter - AWSProfile: 
+2025-08-30 17:15:30.289 :  ** INFO: Parameter - UseSSOLogin: False
+2025-08-30 17:15:30.343 :  ** INFO: Parameter - SqlUser: admin
+2025-08-30 17:15:30.398 :  ** INFO: Parameter - SqlPassword: *********
+2025-08-30 17:15:30.451 :  ** INFO: Parameter - ExportPath: 
+2025-08-30 17:15:30.503 :  ** INFO: Parameter - FileNameDelimiter: ~~~~
+2025-08-30 17:15:30.555 :  ** INFO: Parameter - DebugMode: False
+2025-08-30 17:15:30.840 :  ** INFO: AWS CLI v2.x Detected: Version aws-cli/2.28.21 Python/3.13.7 Darwin/24.6.0 source/arm64
+2025-08-30 17:15:34.226 :  ** INFO: PS Version: 7.5.2
+2025-08-30 17:15:35.403 :  ** ERROR: PS Module AWS.Tools.Common Missing
+2025-08-30 17:16:04.683 :  ** INFO: Setting Script Path: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection

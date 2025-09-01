@@ -1,0 +1,52 @@
+2025-08-31 08:46:02.497 :  ** INFO: Logfile Path Set: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection/Export/083125084602/Log/MVA_Log_083125084602.log
+2025-08-31 08:46:02.549 :  ** INFO: MVA Data Collection Script - Version : 1.0.8
+2025-08-31 08:46:04.751 :  ** INFO: Parameter - CollectConnectionsOnly: False
+2025-08-31 08:46:04.804 :  ** INFO: Parameter - ExportDacPacs: False
+2025-08-31 08:46:04.858 :  ** INFO: Parameter - CollectCloudWatchData: True
+2025-08-31 08:46:04.911 :  ** INFO: Parameter - CollectTsqlData: False
+2025-08-31 08:46:04.980 :  ** INFO: Parameter - CleanUpEnvironment: False
+2025-08-31 08:46:05.033 :  ** INFO: Parameter - SqlServerConnectionTimeout: 300
+2025-08-31 08:46:05.086 :  ** INFO: Parameter - SqlServerQueryTimeout: 5
+2025-08-31 08:46:05.140 :  ** INFO: Parameter - CloudWatchCollectionPeriod: 30
+2025-08-31 08:46:05.196 :  ** INFO: Parameter - IncludeAllMsgs: True
+2025-08-31 08:46:05.251 :  ** INFO: Parameter - ValidateResourcesOnly: False
+2025-08-31 08:46:05.304 :  ** INFO: Parameter - AWSProfile: evolve
+2025-08-31 08:46:05.355 :  ** INFO: Parameter - UseSSOLogin: False
+2025-08-31 08:46:05.407 :  ** INFO: Parameter - SqlUser: admin
+2025-08-31 08:46:05.459 :  ** INFO: Parameter - SqlPassword: *********
+2025-08-31 08:46:05.511 :  ** INFO: Parameter - ExportPath: 
+2025-08-31 08:46:05.563 :  ** INFO: Parameter - FileNameDelimiter: ~~~~
+2025-08-31 08:46:05.615 :  ** INFO: Parameter - DebugMode: True
+2025-08-31 08:46:05.897 :  ** INFO: AWS CLI v2.x Detected: Version aws-cli/2.28.21 Python/3.13.7 Darwin/24.6.0 source/arm64
+2025-08-31 08:46:05.949 :  ** INFO: PS Version: 7.5.2
+2025-08-31 08:46:06.030 :  ** INFO: PS Module AWS.Tools.Common Missing
+2025-08-31 08:46:06.097 :  ** INFO: PS Module AWSPowerShell Missing
+2025-08-31 08:46:06.168 :  ** INFO: PS Module AWSPowerShell.NetCore Found: Version 5.0.29
+2025-08-31 08:46:06.220 :  ** INFO: Profile evolve Supplied: Validating
+2025-08-31 08:46:06.945 :  ** INFO: Profile evolve Found
+2025-08-31 08:46:06.997 :  ** INFO: Profile: User ID: AIDATNSDHDOVAB6RTZB4N
+2025-08-31 08:46:07.048 :  ** INFO: Profile: Account: 235290434474
+2025-08-31 08:46:07.100 :  ** INFO: Profile: ARN: arn:aws:iam::235290434474:user/pekins
+2025-08-31 08:46:07.680 :  ** INFO: Region us-east-2 has been validated
+2025-08-31 08:46:08.329 :  ** INFO: Instance i-034419e3c67ca1103 has been validated
+2025-08-31 08:46:08.382 :  ** INFO: Instance i-034419e3c67ca1103 Private DNS Name Found: ec2-3-14-134-131.us-east-2.compute.amazonaws.com
+2025-08-31 08:46:09.013 :  ** INFO: Instance i-041f169de8a947192 has been validated
+2025-08-31 08:46:09.065 :  ** INFO: Instance i-041f169de8a947192 Private DNS Name Found: ec2-3-140-195-51.us-east-2.compute.amazonaws.com
+2025-08-31 08:46:09.643 :  ** INFO: RDS Node rds-ex has been validated
+2025-08-31 08:46:09.696 :  ** INFO: No TSQL Data Collection Specified : Skipping SQL Connectivity Test
+2025-08-31 08:46:09.747 :  ** INFO: Database Tsql Filter Created : SELECT [name] FROM [master].[sys].[databases] 
+                    WHERE source_database_id IS NULL 
+                        and [name] NOT IN('model','tempdb','master','msdb','distribution','ssisdb','rdsadmin','MVA-Data-Collection') 
+                        and [name] NOT LIKE '%ReportServer%' 
+                        and state_desc = 'ONLINE'  ORDER BY Name
+2025-08-31 08:46:25.668 :  ** INFO: Exported EC2 CW Metric CPUUtilization : i-034419e3c67ca1103
+2025-08-31 08:46:39.199 :  ** INFO: Exported EC2 CW Metric EBSReadOps : i-034419e3c67ca1103
+2025-08-31 08:46:52.734 :  ** INFO: Exported EC2 CW Metric EBSWriteOps : i-034419e3c67ca1103
+2025-08-31 08:47:06.339 :  ** INFO: Exported EC2 CW Metric EBSReadBytes : i-034419e3c67ca1103
+2025-08-31 08:47:19.674 :  ** INFO: Exported EC2 CW Metric EBSWriteBytes : i-034419e3c67ca1103
+2025-08-31 08:47:33.676 :  ** INFO: Exported EC2 CW Metric NetworkIn : i-034419e3c67ca1103
+2025-08-31 08:47:47.711 :  ** INFO: Exported EC2 CW Metric NetworkOut : i-034419e3c67ca1103
+2025-08-31 08:48:01.568 :  ** INFO: Exported EC2 CW Metric NetworkPacketsIn : i-034419e3c67ca1103
+2025-08-31 08:48:15.199 :  ** INFO: Exported EC2 CW Metric NetworkPacketsOut : i-034419e3c67ca1103
+2025-08-31 08:50:25.429 :  ** INFO: Debug Mode Enabled
+2025-08-31 08:50:25.481 :  ** INFO: Setting Script Path: /Users/philekins/Documents/Evolve/GitRepos/mva-data-collection
