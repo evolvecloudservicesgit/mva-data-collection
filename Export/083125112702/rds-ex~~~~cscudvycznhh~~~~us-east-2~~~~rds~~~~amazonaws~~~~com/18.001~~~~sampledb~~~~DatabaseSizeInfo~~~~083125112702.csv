@@ -1,3 +1,0 @@
-"Column1"|"dbName"|"File Name"|"Physical Name"|"Total Size in MB"|"Available Space In MB"|"file_id"
-"EC2AMAZ-2A4D56D"|"sampledb"|"sampledb"|"D:\rdsdbdata\DATA\sampledb.mdf"|"8.000000"|"5.312500"|"1"
-"EC2AMAZ-2A4D56D"|"sampledb"|"sampledb_log"|"D:\rdsdbdata\DATA\sampledb_log.ldf"|"8.000000"|"7.468750"|"2"

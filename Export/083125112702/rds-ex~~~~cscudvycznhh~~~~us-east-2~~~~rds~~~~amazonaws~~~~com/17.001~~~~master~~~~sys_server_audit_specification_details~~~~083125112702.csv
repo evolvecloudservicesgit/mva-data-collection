@@ -1,3 +1,0 @@
-"SQLInstance"|"server_specification_id"|"audit_action_id"|"audit_action_name"|"class"|"class_desc"|"major_id"|"minor_id"|"audited_principal_id"|"audited_result"|"is_group"
-"EC2AMAZ-2A4D56D"|"65536"|"LGFL"|"FAILED_LOGIN_GROUP"|"100"|"SERVER"|"0"|"0"|"2"|"SUCCESS AND FAILURE"|"True"
-"EC2AMAZ-2A4D56D"|"65537"|"CNAU"|"AUDIT_CHANGE_GROUP"|"100"|"SERVER"|"0"|"0"|"2"|"SUCCESS AND FAILURE"|"True"

@@ -1,7 +1,7 @@
-customername:Acme
-Region:us-east-2
+customername:
+Region:
 server:
 instance:
-Rds:rds-ex;rds-ex1;
+Rds:
 fsx:
 database:

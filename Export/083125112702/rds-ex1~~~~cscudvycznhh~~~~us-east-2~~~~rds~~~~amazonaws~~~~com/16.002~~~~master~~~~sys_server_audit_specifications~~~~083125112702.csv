@@ -1,3 +1,0 @@
-"SQLInstance"|"server_specification_id"|"name"|"create_date"|"modify_date"|"audit_guid"|"is_state_enabled"|"is_session_context_enabled"|"session_context_keys"
-"EC2AMAZ-KU3O7DJ"|"65536"|"RDS_DAS_SERVER_AUDIT_SPEC"|"8/31/2025 4:12:55 PM"|"8/31/2025 4:12:55 PM"|"20250828-1151-4844-7202-508281151484"|"True"|""|""
-"EC2AMAZ-KU3O7DJ"|"65537"|"RDS_DAS_CHANGES_AUDIT_SPEC"|"8/31/2025 4:12:55 PM"|"8/31/2025 4:12:55 PM"|"a06e929b-94c9-4527-bd7a-55521ceac2b1"|"True"|""|""

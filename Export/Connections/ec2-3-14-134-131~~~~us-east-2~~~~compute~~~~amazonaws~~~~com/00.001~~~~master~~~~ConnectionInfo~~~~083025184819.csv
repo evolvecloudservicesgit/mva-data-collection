@@ -1,3 +1,0 @@
-"SQLInstance"|"ClientAddress"|"ProgramName"|"HostName"|"LoginName"|"ConnectionCount"|"collect_date"
-"EC2AMAZ-SKHAMNR\SQL2022"|"<local machine>                                 "|"SQLServerCEIP"|"EC2AMAZ-SKHAMNR"|"NT SERVICE\SQLTELEMETRY$SQL2022"|"1"|"8/30/2025 11:48:25 PM"
-"EC2AMAZ-SKHAMNR\SQL2022"|"65.30.225.3                                     "|"Core .Net SqlClient Data Provider"|"Mac"|"admin"|"2"|"8/30/2025 11:48:25 PM"
