@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.10
+# Version: 1.0.11
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -91,7 +91,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.10"
+        $Version = "1.0.11"
 
         Return $Version 
     } CATCH {
@@ -1384,7 +1384,7 @@ Function ValidateEC2Info
                 TRY {
                     ## Locate Private IP for InstanceIDs
                     $DnsName = $output.Reservations.Instances.PrivateDnsName  
-                    $DnsName = $output.Reservations.Instances.PublicDnsName  
+                    #$DnsName = $output.Reservations.Instances.PublicDnsName  
 
                     LogActivity "** INFO: Instance $instance Private DNS Name Found: $DnsName" $False
                 
