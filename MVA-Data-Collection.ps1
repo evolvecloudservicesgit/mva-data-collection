@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.12
+# Version: 1.0.13
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -48,6 +48,8 @@
 #     This may need to be adjusted for your workload
 #   -IncludeAllMsgs {default is false}
 #     Verbose Mode
+#   -UsePublicIPs {default is false}
+#     Uses Public facing DNS Names
 #   -CleanUpEnvironment {default is false}
 #     This will remove
 #         . Agent Job CollectConnections
@@ -92,7 +94,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.12"
+        $Version = "1.0.13"
 
         Return $Version 
     } CATCH {

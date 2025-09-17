@@ -59,6 +59,9 @@
 **-IncludeAllMsgs** {default is false}
 - Verbose Mode
 
+**-UsePublicIPs** {default is false}
+- Uses Public facing DNS Names
+
 **-CleanUpEnvironment** {default is false}
 - This will remove:
   - Agent Job CollectConnections
