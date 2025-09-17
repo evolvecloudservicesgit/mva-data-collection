@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.11
+# Version: 1.0.12
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -84,6 +84,7 @@ param(
     [Parameter(Mandatory=$false)] [String] $SqlPassword = '',
     [Parameter(Mandatory=$false)] [String] $ExportPath = '',
     [Parameter(Mandatory=$false)] [String] $FileNameDelimiter = '~~~~',
+    [Parameter(Mandatory=$false)] [switch] $UsePublicIPs = $False,
     [Parameter(Mandatory=$false)] [switch] $DebugMode = $false
 )
      
@@ -91,7 +92,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.11"
+        $Version = "1.0.12"
 
         Return $Version 
     } CATCH {
@@ -191,8 +192,7 @@ Function CleanUpEnvironment()
         $sql = "IF EXISTS (SELECT 1 FROM [master].[dbo].[sysdatabases] WHERE name = 'MVA-Data-Collection') 
                     DROP DATABASE [MVA-Data-Collection]
                 IF EXISTS (SELECT 1 FROM msdb.dbo.sysjobs WHERE name = 'CollectConnections') 
-                    EXEC msdb.dbo.sp_delete_job @job_name= N'CollectConnections' 
-                GO"
+                    EXEC msdb.dbo.sp_delete_job @job_name= N'CollectConnections'"
 
         ForEach ($Server in $global:AllServers) {
             IF (!([string]::IsNullOrWhiteSpace($Server))) {
@@ -208,7 +208,7 @@ Function CleanUpEnvironment()
         }
 
         ## Remove Directories and CSV files - retains *MVA-Export-ALL-*.zip files
-        $AllItems = Get-ChildItem -Path ( $(FormatSting -InputString "$ExportPath\Export")) -Recurse
+        $AllItems = Get-ChildItem -Path ( $(FormatString -InputString "$ExportPath\Export")) -Recurse
         $Files = $AllItems | Where-Object { -not $_.PSIsContainer }
         $Directories = $AllItems | Where-Object { $_.PSIsContainer }
 
@@ -1280,7 +1280,7 @@ Function CollectConnectionInfoOnly()
                     WHERE es.is_user_process = 1
                     GROUP BY ec.client_net_address, es.[program_name], es.[host_name], es.login_name, DB_NAME(er.database_id) 
                     ORDER BY ec.client_net_address, es.[program_name] OPTION (RECOMPILE);
-                    GO"
+                    "
                         
                     Invoke-Sql -ServerInstance $Server -Database 'master' -Query "IF NOT EXISTS (SELECT 1 FROM [master].[dbo].[sysdatabases] WHERE name = 'MVA-Data-Collection') CREATE DATABASE [MVA-Data-Collection];"
 
@@ -1370,7 +1370,16 @@ Function ValidateEC2Info
                         }
                     }
                     IF ( (!([string]::IsNullOrWhiteSpace($output))) -and ( $output.Reservations.Instances.InstanceId -eq $instance )) { 
-                        IF ($ValidateResourcesOnly) { LogActivity "** INFO: Instance $instance has been validated" $True } ELSE { LogActivity "** INFO: Instance $instance has been validated" $False }
+                        IF ($Output.Reservations.Instances.State.Name -ne 'running') {
+                            $Pass = $False
+                            LogActivity "** ERROR: Instance $instance is Not running" $True
+                        } Else {
+                            IF ($ValidateResourcesOnly) {
+                                LogActivity "** INFO: Instance $instance has been validated" $True 
+                            } ELSE { 
+                                LogActivity "** INFO: Instance $instance has been validated" $False 
+                            }
+                        }
                     } Else {
                         $Pass = $False
                         LogActivity "** ERROR: Instance $instance has failed validation" $True
@@ -1382,18 +1391,23 @@ Function ValidateEC2Info
                 }
 
                 TRY {
-                    ## Locate Private IP for InstanceIDs
-                    $DnsName = $output.Reservations.Instances.PrivateDnsName  
-                    #$DnsName = $output.Reservations.Instances.PublicDnsName  
-
-                    LogActivity "** INFO: Instance $instance Private DNS Name Found: $DnsName" $False
-                
-                    IF ($output.Reservations.Instances.tags.Key -eq "Name") {
-                        $name = $output.Reservations.Instances.tags | Where-Object { $_.Key -eq "Name" } | Select-Object -expand Value
-                    } Else { 
-                        $name = ''
+                    IF ($Output.Reservations.Instances.State.Name -eq 'running') {
+                        ## Locate Private/Public IP for InstanceIDs
+                        IF ($UsePublicIPs) {
+                            $DnsName = $output.Reservations.Instances.PublicDnsName  
+                            LogActivity "** INFO: Instance $instance Public DNS Name Found: $DnsName" $False
+                        } Else {
+                            $DnsName = $output.Reservations.Instances.PrivateDnsName 
+                            LogActivity "** INFO: Instance $instance Private DNS Name Found: $DnsName" $False
+                        }
+                    
+                        IF ($output.Reservations.Instances.tags.Key -eq "Name") {
+                            $name = $output.Reservations.Instances.tags | Where-Object { $_.Key -eq "Name" } | Select-Object -expand Value
+                        } Else { 
+                            $name = ''
+                        }
+                        $InstanceIdDetails.Add($instance, "$DnsName|$name")
                     }
-                    $InstanceIdDetails.Add($instance, "$DnsName|$name")
                 } CATCH {
                     IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
                     LogActivity "** ERROR: Unable to Identify IP addresses associated with Instances : $ErrorMsg" $True
@@ -1653,14 +1667,27 @@ Function Invoke-Sql
         [Parameter(Mandatory=$false)] [String] $Query
      )
     TRY {
-        $output = ''
+        $table = $Null
 
-        If (!([string]::IsNullOrWhiteSpace($SqlUser))) {
-            $output = (Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $Database -Query $Query -ConnectionTimeout $SqlServerConnectionTimeout -QueryTimeout $SqlServerQueryTimeout -ErrorAction Stop -Username $SqlUser -Password $SqlPassword)           
-        } ELSE {
-            $output = (Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $Database -Query $Query -ConnectionTimeout $SqlServerConnectionTimeout -QueryTimeout $SqlServerQueryTimeout -ErrorAction Stop)
+        $conn = New-Object System.Data.SqlClient.SqlConnection
+        If ([string]::IsNullOrWhiteSpace($SqlUser)) {
+            $conn.ConnectionString = "Server=$ServerInstance;Database=$Database;Integrated Security=true;TrustServerCertificate=True;Connection Timeout=$SqlServerConnectionTimeout"
+        } Else {
+            $conn.ConnectionString = "Server=$ServerInstance;Database=$Database;User ID='$SqlUser';Password='$SqlPassword';TrustServerCertificate=True;Connection Timeout=$SqlServerConnectionTimeout"
         }
-        Return $output
+        $conn.Open()
+
+        $cmd = $conn.CreateCommand()
+        $cmd.CommandTimeout = $SqlServerQueryTimeout
+        $cmd.CommandText = $Query
+
+        $adapter = New-Object System.Data.SqlClient.SqlDataAdapter $cmd
+        $table = New-Object System.Data.DataTable
+        $adapter.Fill($table) | Out-Null
+
+        $conn.Close()
+
+        Return $table
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         IF ($ErrorMsg -eq 'SQLServerAgent is not currently running so it cannot be notified of this action.') {
@@ -1777,12 +1804,13 @@ Function ContainsUserObjects()
                 }
             }
         }
-        Return $ContainsUserObjects
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
-        LogActivity "** ERROR: ContainsUserObjects() : $ErrorMsg" $True
-        Exit_Script -ErrorRaised $True
+            LogActivity "** ERROR: ContainsUserObjects() : $ErrorMsg" $True
+            $ContainsUserObjects = $True 
+            #Exit_Script -ErrorRaised $True
     }
+    Return $ContainsUserObjects
 } 
 
 Function FormatServerName()
@@ -1905,6 +1933,7 @@ Function Main
         [Parameter(Mandatory=$false)] [String] $SqlPassword,
         [Parameter(Mandatory=$false)] [String] $ExportPath,
         [Parameter(Mandatory=$false)] [String] $FileNameDelimiter,
+        [Parameter(Mandatory=$false)] [bool]   $UsePublicIPs,
         [Parameter(Mandatory=$false)] [bool]   $DebugMode 
     )
 
@@ -1994,6 +2023,7 @@ Function Main
         LogActivity "** INFO: Parameter - SqlPassword: *********" $False
         LogActivity "** INFO: Parameter - ExportPath: $ExportPath" $False
         LogActivity "** INFO: Parameter - FileNameDelimiter: $FileNameDelimiter" $False
+        LogActivity "** INFO: Parameter - UsePublicIPs: $UsePublicIPs" $False
         LogActivity "** INFO: Parameter - DebugMode: $DebugMode" $False
 
         ## Check AWS CLI Version installed
@@ -2957,13 +2987,14 @@ TRY {
         -SqlPassword $SqlPassword                               `
         -ExportPath $ExportPath                                 `
         -FileNameDelimiter $FileNameDelimiter                   `
+        -UsePublicIPs $UsePublicIPs                             `
         -DebugMode $DebugMode 
 
-    # Main -CollectConnectionsOnly $False `
-    #     -ExportDacPacs $False `
-    #     -CollectCloudWatchData $False `
-    #     -CollectTsqlData $False `
-    #     -CleanUpEnvironment $False `
+    # Main -CollectConnectionsOnly $false `
+    #     -ExportDacPacs $false `
+    #     -CollectCloudWatchData $false `
+    #     -CollectTsqlData $false `
+    #     -CleanUpEnvironment $false `
     #     -SqlServerConnectionTimeout 300 `
     #     -SqlServerQueryTimeout 5 `
     #     -CloudWatchCollectionPeriod 30 `
@@ -2975,6 +3006,7 @@ TRY {
     #     -SqlPassword '' `
     #     -ExportPath '' `
     #     -FileNameDelimiter '~~~~' `
+    #     -UsePublicIPs $False `
     #     -DebugMode $False
 
 } CATCH {
