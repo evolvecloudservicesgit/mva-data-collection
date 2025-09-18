@@ -1,3 +1,8 @@
+------------------------------------------------------------------------------
+-- These are the minimum permissions needed to execute the collections process
+-- Existing uses that have this set of permissions can be used instead
+------------------------------------------------------------------------------
+
 USE [master]
 GO
 IF NOT EXISTS (SELECT 1 FROM [syslogins] WHERE [name] = 'mva_user')

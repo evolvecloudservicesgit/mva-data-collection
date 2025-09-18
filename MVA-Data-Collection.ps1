@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.13
+# Version: 1.0.14
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -94,7 +94,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.13"
+        $Version = "1.0.14"
 
         Return $Version 
     } CATCH {
@@ -2030,15 +2030,40 @@ Function Main
 
         ## Check AWS CLI Version installed
         TRY {
-            $awsVersion = aws --version 2>$null
-            IF (!([string]::IsNullOrWhiteSpace($awsVersion))) {
-                IF ($awsVersion -like 'aws-cli/1.*') {
-                    LogActivity "** INFO: AWS CLI v1.x Detected: Version $awsVersion" $False
-                } ELSEIF ($awsVersion -like 'aws-cli/2.*') {
-                    LogActivity "** INFO: AWS CLI v2.x Detected: Version $awsVersion" $False
-                } ELSE {
-                    LogActivity "** ERROR: Required - AWS CLI Not Found or Accessible: $ErrorMsg" $True
-                    Exit_Script -ErrorRaised $True
+            TRY {
+                $awsVersion = aws --version 2>$null
+            } CATCH {
+                IF (!([string]::IsNullOrWhiteSpace($awsVersion))) {
+                    IF ($awsVersion -like 'aws-cli/1.*') {
+                        LogActivity "** INFO: AWS CLI v1.x Detected: Version $awsVersion" $False
+                    } ELSEIF ($awsVersion -like 'aws-cli/2.*') {
+                        LogActivity "** INFO: AWS CLI v2.x Detected: Version $awsVersion" $False
+                    } ELSE {
+                        LogActivity "** ERROR: Required - AWS CLI Not Found or Accessible: $ErrorMsg" $True
+                        Exit_Script -ErrorRaised $True
+                    }
+                } Else {
+                    IF ($IsWindows) {  
+                        LogActivity "** INFO: AWS CLI Not Installed - this is a Required Object" $True
+                        LogActivity "** INFO: Beginning AWS CLI Install" $True
+                        
+                        $installerUrl = "https://awscli.amazonaws.com/AWSCLIV2.msi"
+                        $installerPath = "$ScriptRoot\AWSCLIV2.msi"
+
+                        Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
+                        Start-Process msiexec.exe -Wait -ArgumentList "/i `"$installerPath`" /qn"
+                        Remove-Item $installerPath -Force
+                        LogActivity "** INFO: AWS CLI Install Complete - Please Restart Session" $True
+                        Exit_Script -ErrorRaised $False
+                    } ElseIf ($IsMacOS) {
+                        LogActivity "** INFO: AWS CLI Not Installed - this is a Required Object" $True
+                        LogActivity "** INFO: Beginning AWS CLI Install" $True   
+
+                        curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
+                        sudo installer -pkg AWSCLIV2.pkg -target /
+                        LogActivity "** INFO: AWS CLI Install Complete - Please Restart Session" $True
+                        Exit_Script -ErrorRaised $False                        
+                    }
                 }
             }
         } CATCH {
