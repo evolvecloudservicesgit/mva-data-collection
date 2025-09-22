@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.14
+# Version: 1.0.15
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -94,7 +94,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.14"
+        $Version = "1.0.15"
 
         Return $Version 
     } CATCH {
@@ -985,7 +985,7 @@ Function LoadTSqlArray()
         
         ## 47 sql_agent_job_info
         IF (($SqlVersion).SubString(0,2) -in("10","11","12","13","14","15","16","17")) {  
-            $global:TsqlInstance.Add("46.002~[sql_agent_job_info]","IF NOT EXISTS (SELECT 1 FROM [master].[sys].[databases] WHERE [name] = 'rdsadmin')
+            $global:TsqlInstance.Add("47.001~[sql_agent_job_info]","IF NOT EXISTS (SELECT 1 FROM [master].[sys].[databases] WHERE [name] = 'rdsadmin')
                 BEGIN
                     SELECT @@SERVERNAME AS SQLInstance,j.job_id,j.name AS JobName,j.enabled AS JobEnabled,j.name AS Category,s.step_id,s.step_name,
                         s.subsystem,s.command,sc.name AS ScheduleName,sc.enabled AS ScheduleEnabled,sc.freq_type,sc.freq_interval,sc.freq_subday_type,
