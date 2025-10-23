@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.15
+# Version: 1.0.16
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -94,7 +94,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.15"
+        $Version = "1.0.16"
 
         Return $Version 
     } CATCH {
@@ -1018,7 +1018,177 @@ Function LoadTSqlArray()
                         '' AS  active_end_time 
 			        FROM [msdb].[dbo].[sysjobs] j
                 END")   
-        }            
+        }    
+        
+        ## 48 sys.dm_os_sys_info
+        IF (($SqlVersion).SubString(0,2) -in("10")) {  
+            $global:TsqlInstance.Add("48.001~[sys_dm_os_sys_info]","
+            SELECT @@SERVERNAME AS SQLInstance, 
+                [cpu_ticks],
+                [ms_ticks],
+                [cpu_count],
+                [hyperthread_ratio],
+                [physical_memory_in_bytes] AS [physical_memory_kb],
+                [virtual_memory_in_bytes] AS [virtual_memory_kb],
+                [bpool_committed] AS [committed_kb],
+                [bpool_commit_target] AS [committed_target_kb],
+                [bpool_visible] AS [visible_target_kb],
+                [stack_size_in_bytes],
+                [os_quantum],
+                [os_error_mode],
+                [os_priority_class],
+                [max_workers_count],
+                [scheduler_count],
+                [scheduler_total_count],
+                [deadlock_monitor_serial_number],
+                [sqlserver_start_time_ms_ticks],
+                [sqlserver_start_time],
+                '' AS [affinity_type],
+                '' AS [affinity_type_desc],
+                '' AS [process_kernel_time_ms],
+                '' AS [process_user_time_ms],
+                '' AS [time_source],
+                '' AS [time_source_desc],
+                '' AS [virtual_machine_type],
+                '' AS [virtual_machine_type_desc],
+                '' AS [softnuma_configuration],
+                '' AS [softnuma_configuration_desc],
+                '' AS [process_physical_affinity],
+                '' AS [sql_memory_model],
+                '' AS [sql_memory_model_desc],
+                '' AS [socket_count],
+                '' AS [cores_per_socket],
+                '' AS [numa_node_count],
+                '' AS [container_type],
+                '' AS [container_type_desc]
+            FROM [sys].[dm_os_sys_info]")   
+        } ElseIF (($SqlVersion).SubString(0,2) -in("11")) {  
+            $global:TsqlInstance.Add("48.002~[sys_dm_os_sys_info]","
+            SELECT @@SERVERNAME AS SQLInstance, 
+                [cpu_ticks],
+                [ms_ticks],
+                [cpu_count],
+                [hyperthread_ratio],
+                [physical_memory_kb],
+                [virtual_memory_kb],
+                [committed_kb],
+                [committed_target_kb],
+                [visible_target_kb],
+                [stack_size_in_bytes],
+                [os_quantum],
+                [os_error_mode],
+                [os_priority_class],
+                [max_workers_count],
+                [scheduler_count],
+                [scheduler_total_count],
+                [deadlock_monitor_serial_number],
+                [sqlserver_start_time_ms_ticks],
+                [sqlserver_start_time],
+                [affinity_type],
+                [affinity_type_desc],
+                [process_kernel_time_ms],
+                [process_user_time_ms],
+                [time_source],
+                [time_source_desc],
+                [virtual_machine_type],
+                [virtual_machine_type_desc],
+                '' AS [softnuma_configuration],
+                '' AS [softnuma_configuration_desc],
+                '' AS [process_physical_affinity],
+                [sql_memory_model],
+                [sql_memory_model_desc],
+                '' AS [socket_count],
+                '' AS [cores_per_socket],
+                '' AS [numa_node_count],
+                '' AS [container_type],
+                '' AS [container_type_desc]
+            FROM [sys].[dm_os_sys_info]")
+        } ElseIF (($SqlVersion).SubString(0,2) -in("12")) {  
+            $global:TsqlInstance.Add("48.003~[sys_dm_os_sys_info]","
+            SELECT @@SERVERNAME AS SQLInstance, 
+                [cpu_ticks],
+                [ms_ticks],
+                [cpu_count],
+                [hyperthread_ratio],
+                [physical_memory_kb],
+                [virtual_memory_kb],
+                [committed_kb],
+                [committed_target_kb],
+                [visible_target_kb],
+                [stack_size_in_bytes],
+                [os_quantum],
+                [os_error_mode],
+                [os_priority_class],
+                [max_workers_count],
+                [scheduler_count],
+                [scheduler_total_count],
+                [deadlock_monitor_serial_number],
+                [sqlserver_start_time_ms_ticks],
+                [sqlserver_start_time],
+                [affinity_type],
+                [affinity_type_desc],
+                [process_kernel_time_ms],
+                [process_user_time_ms],
+                [time_source],
+                [time_source_desc],
+                [virtual_machine_type],
+                [virtual_machine_type_desc],
+                '' AS [softnuma_configuration],
+                '' AS [softnuma_configuration_desc],
+                '' AS [process_physical_affinity],
+                [sql_memory_model],
+                [sql_memory_model_desc],
+                [socket_count],
+                [cores_per_socket],
+                [numa_node_count],
+                '' AS [container_type],
+                '' AS [container_type_desc]
+            FROM [sys].[dm_os_sys_info]")
+        } ELSEIf (($Sqlversion).SubString(0,2) -in("13")) {  
+            $global:TsqlInstance.Add("48.004~[sys_dm_os_sys_info]","
+            SELECT @@SERVERNAME AS SQLInstance, 
+                [cpu_ticks],
+                [ms_ticks],
+                [cpu_count],
+                [hyperthread_ratio],
+                [physical_memory_kb],
+                [virtual_memory_kb],
+                [committed_kb],
+                [committed_target_kb],
+                [visible_target_kb],
+                [stack_size_in_bytes],
+                [os_quantum],
+                [os_error_mode],
+                [os_priority_class],
+                [max_workers_count],
+                [scheduler_count],
+                [scheduler_total_count],
+                [deadlock_monitor_serial_number],
+                [sqlserver_start_time_ms_ticks],
+                [sqlserver_start_time],
+                [affinity_type],
+                [affinity_type_desc],
+                [process_kernel_time_ms],
+                [process_user_time_ms],
+                [time_source],
+                [time_source_desc],
+                [virtual_machine_type],
+                [virtual_machine_type_desc],
+                [softnuma_configuration],
+                [softnuma_configuration_desc],
+                '' AS [process_physical_affinity],
+                [sql_memory_model],
+                [sql_memory_model_desc],
+                [socket_count],
+                [cores_per_socket],
+                [numa_node_count],
+                '' AS [container_type],
+                '' AS [container_type_desc]
+            FROM [sys].[dm_os_sys_info]")
+        } ELSEIF (($SqlVersion).SubString(0,2) -in("14","15","16","17")) {  
+            $global:TsqlInstance.Add("48.005~[sys_dm_os_sys_info]","
+            SELECT @@SERVERNAME AS SQLInstance, * FROM [sys].[dm_os_sys_info]")
+        }    
 
         #############################
         ## Database Specific Queries
@@ -1127,7 +1297,13 @@ Function LoadTSqlArray()
                 INNER JOIN sys.indexes AS i WITH (NOLOCK) ON s.[object_id] = i.[object_id] AND i.index_id = s.index_id
                 WHERE OBJECTPROPERTY(s.[object_id],'IsUserTable') = 1 AND s.database_id = DB_ID() AND user_updates > (user_seeks + user_scans + user_lookups) AND i.index_id > 1
                 OPTION (RECOMPILE);")   
-        }         
+        }    
+        
+        ## 49 sys_database_files
+        IF (($SqlVersion).SubString(0,2) -in("10","11","12","13","14","15","16","17")) {  
+            $global:TsqlDatabase.Add("49.001~[sys_database_files]","SELECT @@SERVERNAME AS SQLInstance, '@@@@' AS dbName, * 
+                FROM [sys].[database_files];")   
+        }            
         
         ## Transactional Replication Specific Queries
         $global:TsqlReplicatedDatabase = @{}
@@ -2411,15 +2587,18 @@ Function Main
                                         LogActivity "** INFO: Beginning Export : SQL Database Schema : $Database : $Server" $False
                                         $Output = $Null
                                         $SqlMajorVersion = ($SqlVersion).SubString(0,2)
-                                        $DiagnosticsFile = FormatString -InputString $("$ExportPath\$Database$FileNameDelimiter"+"DacPacDiagnostic.log")
-                                        $TargetFile = FormatString -InputString $("$ExportPath\$Database$FileNameDelimiter$SqlMajorVersion.dacpac")
+                                        $DiagnosticsFile = FormatString -InputString $("$ExportPath\$Database$FileNameDelimiter"+"Diagnostic.log")
+                                        #$TargetFile = FormatString -InputString $("$ExportPath\$Database$FileNameDelimiter$SqlMajorVersion.dacpac")
+                                        $TargetSqlFile = FormatString -InputString $("$ExportPath\$Database$FileNameDelimiter$SqlMajorVersion.sql")
                                         If (!([string]::IsNullOrWhiteSpace($SqlUser))) {
-                                            $Output = .\SqlPackage /Action:Extract /TargetFile:$TargetFile /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractAllTableData=false /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 /SourceUser:$SqlUser /SourcePassword:$SqlPassword
+                                            #$Output = .\SqlPackage /Action:Extract /TargetFile:$TargetFile /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractAllTableData=false /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 /SourceUser:$SqlUser /SourcePassword:$SqlPassword
+                                            $Output = .\SqlPackage /Action:Extract /TargetFile:$TargetSqlFile /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractTarget=File /p:ExtractAllTableData=false /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 /SourceUser:$SqlUser /SourcePassword:$SqlPassword         
                                         } Else {
-                                            $Output = .\SqlPackage /Action:Extract /TargetFile:$TargetFile /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractAllTableData=false  /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 
+                                            #$Output = .\SqlPackage /Action:Extract /TargetFile:$TargetFile /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractAllTableData=false  /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 
+                                            $Output = .\SqlPackage /Action:Extract /TargetFile:$TargetSqlFile /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractTarget=File /p:ExtractAllTableData=false /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 
                                         }
 
-                                        $DacPacConsoleLog = FormatString -InputString $("$ExportPath\$Database$FileNameDelimiter"+"DacPacConsole.log")
+                                        $DacPacConsoleLog = FormatString -InputString $("$ExportPath\$Database$FileNameDelimiter"+"Console.log")
                                         IF ($Output -like '*Failed to generate SSPI context*') {
                                             $Output | Out-File -FilePath $DacPacConsoleLog
                                             LogActivity "** ERROR: Creating DacPac : Failed to generate SSPI context : $Database" $True
