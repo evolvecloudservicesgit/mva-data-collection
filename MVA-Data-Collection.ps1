@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.16
+# Version: 1.0.17
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -94,7 +94,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.16"
+        $Version = "1.0.17"
 
         Return $Version 
     } CATCH {
@@ -2587,15 +2587,19 @@ Function Main
                                         LogActivity "** INFO: Beginning Export : SQL Database Schema : $Database : $Server" $False
                                         $Output = $Null
                                         $SqlMajorVersion = ($SqlVersion).SubString(0,2)
+
                                         $DiagnosticsFile = FormatString -InputString $("$ExportPath\$Database$FileNameDelimiter"+"Diagnostic.log")
-                                        #$TargetFile = FormatString -InputString $("$ExportPath\$Database$FileNameDelimiter$SqlMajorVersion.dacpac")
+                                        $DiagnosticsSqlFile = FormatString -InputString $("$ExportPath\$Database$FileNameDelimiter"+"Diagnostic.sql.log")
+
+                                        $TargetFile = FormatString -InputString $("$ExportPath\$Database$FileNameDelimiter$SqlMajorVersion.dacpac")
                                         $TargetSqlFile = FormatString -InputString $("$ExportPath\$Database$FileNameDelimiter$SqlMajorVersion.sql")
+
                                         If (!([string]::IsNullOrWhiteSpace($SqlUser))) {
-                                            #$Output = .\SqlPackage /Action:Extract /TargetFile:$TargetFile /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractAllTableData=false /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 /SourceUser:$SqlUser /SourcePassword:$SqlPassword
-                                            $Output = .\SqlPackage /Action:Extract /TargetFile:$TargetSqlFile /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractTarget=File /p:ExtractAllTableData=false /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 /SourceUser:$SqlUser /SourcePassword:$SqlPassword         
+                                            $Output = .\SqlPackage /Action:Extract /TargetFile:$TargetFile /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractAllTableData=false /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 /SourceUser:$SqlUser /SourcePassword:$SqlPassword
+                                           # $SqlOutput = .\SqlPackage /Action:Extract /TargetFile:$TargetSqlFile /DiagnosticsFile:$DiagnosticsSqlFile /DiagnosticsLevel:Verbose /p:ExtractTarget=File /p:ExtractAllTableData=false /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 /SourceUser:$SqlUser /SourcePassword:$SqlPassword         
                                         } Else {
-                                            #$Output = .\SqlPackage /Action:Extract /TargetFile:$TargetFile /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractAllTableData=false  /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 
-                                            $Output = .\SqlPackage /Action:Extract /TargetFile:$TargetSqlFile /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractTarget=File /p:ExtractAllTableData=false /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 
+                                            $Output = .\SqlPackage /Action:Extract /TargetFile:$TargetFile /DiagnosticsFile:$DiagnosticsFile /DiagnosticsLevel:Verbose /p:ExtractAllTableData=false  /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 
+                                           # $SqlOutput = .\SqlPackage /Action:Extract /TargetFile:$TargetSqlFile /DiagnosticsFile:$DiagnosticsSqlFile /DiagnosticsLevel:Verbose /p:ExtractTarget=File /p:ExtractAllTableData=false /SourceEncryptConnection:False /SourceTrustServerCertificate:True /SourceServerName:$Server /SourceDatabaseName:$Database /p:CommandTimeout=60 /p:DatabaseLockTimeout=1 /p:LongRunningCommandTimeout=60 
                                         }
 
                                         $DacPacConsoleLog = FormatString -InputString $("$ExportPath\$Database$FileNameDelimiter"+"Console.log")
