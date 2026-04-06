@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.17
+# Version: 1.0.18
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -822,8 +822,106 @@ Function LoadTSqlArray()
                 [is_memory_optimized_enabled],             
                 '' AS [is_ledger_on], 
                 '' AS [is_change_feed_enabled] FROM [master].[sys].[databases]")
-        } ELSEIF (($SqlVersion).SubString(0,2) -in("16","17")) {  
-            $global:TsqlInstance.Add("03.007~[sys].[databases]","SELECT @@SERVERNAME AS [SQLInstance], * FROM [master].[sys].[databases]")
+        } ELSEIF (($SqlVersion).SubString(0,2) -in("16")) {  
+            $global:TsqlInstance.Add("03.007~[sys].[databases]","SELECT @@SERVERNAME AS [SQLInstance], 
+            	[name],
+                [database_id],
+                [source_database_id],
+                [owner_sid],
+                [create_date],
+                [compatibility_level],
+                [collation_name],
+                [user_access],
+                [user_access_desc],
+                [is_read_only],
+                [is_auto_close_on],
+                [is_auto_shrink_on],
+                [state],
+                [state_desc],
+                [is_in_standby],
+                [is_cleanly_shutdown],
+                [is_supplemental_logging_enabled],
+                [snapshot_isolation_state],
+                [snapshot_isolation_state_desc],
+                [is_read_committed_snapshot_on],
+                [recovery_model],
+                [recovery_model_desc],
+                [page_verify_option],
+                [page_verify_option_desc],
+                [is_auto_create_stats_on],
+                [is_auto_create_stats_incremental_on],
+                [is_auto_update_stats_on],
+                [is_auto_update_stats_async_on],
+                [is_ansi_null_default_on],
+                [is_ansi_nulls_on],
+                [is_ansi_padding_on],
+                [is_ansi_warnings_on],
+                [is_arithabort_on],
+                [is_concat_null_yields_null_on],
+                [is_numeric_roundabort_on],
+                [is_quoted_identifier_on],
+                [is_recursive_triggers_on],
+                [is_cursor_close_on_commit_on],
+                [is_local_cursor_default],
+                [is_fulltext_enabled],
+                [is_trustworthy_on],
+                [is_db_chaining_on],
+                [is_parameterization_forced],
+                [is_master_key_encrypted_by_server],
+                [is_query_store_on],
+                [is_published],
+                [is_subscribed],
+                [is_merge_published],
+                [is_distributor],
+                [is_sync_with_backup],
+                [service_broker_guid],
+                [is_broker_enabled],
+                [log_reuse_wait],
+                [log_reuse_wait_desc],
+                [is_date_correlation_on],
+                [is_cdc_enabled],
+                [is_encrypted],
+                [is_honor_broker_priority_on],
+                [replica_id], 
+                [group_database_id], 
+                [resource_pool_id],
+                [default_language_lcid], 
+                [default_language_name], 
+                [default_fulltext_language_lcid], 
+                [default_fulltext_language_name], 
+                [is_nested_triggers_on], 
+                [is_transform_noise_words_on], 
+                [two_digit_year_cutoff], 
+                [containment], 
+                [containment_desc], 
+                [target_recovery_time_in_seconds],             
+                [delayed_durability], 
+                [delayed_durability_desc], 
+                [is_memory_optimized_elevate_to_snapshot_on],  
+                [is_federation_member],             
+                [is_remote_data_archive_enabled], 
+                [is_mixed_page_allocation_on], 
+                [is_temporal_history_retention_enabled],             
+                [catalog_collation_type], 
+                [catalog_collation_type_desc], 
+                [is_result_set_caching_on],             
+                [is_accelerated_database_recovery_on], 
+                [is_tempdb_spill_to_remote_store], 
+                [is_stale_page_detection_on], 
+                [is_memory_optimized_enabled],             
+                [is_ledger_on], 
+                [is_change_feed_enabled] 
+                '' AS [is_data_lake_replication_enabled],
+                '' AS [is_event_stream_enabled],
+                '' AS [data_compaction],
+                '' AS [data_compaction_desc],
+                '' AS [data_lake_log_publishing],
+                '' AS [data_lake_log_publishing_desc],
+                '' AS [is_vorder_enabled],
+                '' AS [is_proactive_statistics_refresh_on],
+                '' AS [is_optimized_locking_on] FROM [master].[sys].[databases]")
+        } ELSEIF (($SqlVersion).SubString(0,2) -in("17")) {  
+            $global:TsqlInstance.Add("03.008~[sys].[databases]","SELECT @@SERVERNAME AS [SQLInstance], * FROM [master].[sys].[databases]")
         }
 
         ## 04 master_files
@@ -2115,6 +2213,8 @@ Function Main
         [Parameter(Mandatory=$false)] [bool]   $DebugMode 
     )
 
+    $global:LogFile = ''
+    
     TRY {
 
         IF ($DebugMode) { 
@@ -2732,7 +2832,7 @@ Function Main
         ## Collect CloudWatch Data
         IF ($CollectCloudWatchData -eq $True) {
 
-            $ExportPath = FormatString -InputString $("$ScriptRoot\Export\$datestamp\$FormattedServer\CloudWatch\")
+            $ExportPath = FormatString -InputString $("$ScriptRoot\Export\$datestamp\CloudWatch\")
             IF (!(test-path $ExportPath)) { New-Item -ItemType Directory -Force -Path $ExportPath | Out-Null }
 
             $oFileEC2 = FormatString -InputString $("$ExportPath\EC2~~~~CloudWatch~~~~MetricData.csv")
