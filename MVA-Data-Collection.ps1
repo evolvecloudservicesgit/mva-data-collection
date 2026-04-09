@@ -94,7 +94,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.17"
+        $Version = "1.0.18"
 
         Return $Version 
     } CATCH {
@@ -910,7 +910,7 @@ Function LoadTSqlArray()
                 [is_stale_page_detection_on], 
                 [is_memory_optimized_enabled],             
                 [is_ledger_on], 
-                [is_change_feed_enabled] 
+                [is_change_feed_enabled],
                 '' AS [is_data_lake_replication_enabled],
                 '' AS [is_event_stream_enabled],
                 '' AS [data_compaction],
@@ -2762,6 +2762,7 @@ Function Main
                         ## Loading Version Specific Tsql Scripts into Array
                         LoadTSqlArray $SqlVersion 
 
+                        ## Per Instance Metrics
                         $global:TsqlInstance.GetEnumerator() | ForEach-Object {
                             ExportData $Server $_.Key $_.Value 
                         }
@@ -3308,7 +3309,7 @@ TRY {
     #     -SqlServerConnectionTimeout 300 `
     #     -SqlServerQueryTimeout 5 `
     #     -CloudWatchCollectionPeriod 30 `
-    #     -IncludeAllMsgs $False `
+    #     -IncludeAllMsgs $false `
     #     -ValidateResourcesOnly $true `
     #     -AWSProfile '' `
     #     -UseSSOLogin $False `
@@ -3316,7 +3317,7 @@ TRY {
     #     -SqlPassword '' `
     #     -ExportPath '' `
     #     -FileNameDelimiter '~~~~' `
-    #     -UsePublicIPs $False `
+    #     -UsePublicIPs $false `
     #     -DebugMode $False
 
 } CATCH {
