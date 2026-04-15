@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.19
+# Version: 1.0.20
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -94,7 +94,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.19"
+        $Version = "1.0.20"
 
         Return $Version 
     } CATCH {
@@ -2198,6 +2198,25 @@ Function FormatString()
     }
 } 
 
+Function PowerShellVersionCheck()
+{
+    TRY {
+        $PSVersion = $PSVersionTable.PSVersion.Major.ToString() + "." + $PSVersionTable.PSVersion.Minor.ToString()
+        $PSEdition
+
+        IF ($PSVersion -lt 5.1) {
+            LogActivity "** ALERT: This version of PowerShell ($PSVersion) is below the supported build of 5.1 or above. Please update PowerShell to 5.1 or higher" $True
+            Exit_Script -ErrorRaised $False   
+        }
+        Else {
+            LogActivity "** INFO: PowerShell Version $PSVersion - $PSEdition Detected" $True    
+        }
+    } CATCH {
+        IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
+        LogActivity "** ERROR: PowerShellVersionCheck() : $ErrorMsg" $True
+    }
+} 
+
 Function Main 
 {
     param( 
@@ -2263,6 +2282,9 @@ Function Main
             }
             LogActivity "** INFO: OS Detected: $OS" $False
         }
+
+        ## Test PowerShell Version
+        PowerShellVersionCheck
 
         ## Test ExportPath Override parameter
         IF (!([string]::IsNullOrWhiteSpace($ExportPath))) {
@@ -3010,7 +3032,7 @@ Function Main
                             }                
 
                             $FSxSystems = $Null
-                            $FSxSystems = aws fsx describe-file-systems --file-system-ids @($FSXFileSystemArray) --region $region | ConvertFrom-JSON -Depth 10
+                            $FSxSystems = aws fsx describe-file-systems --file-system-ids @($FSXFileSystemArray) --region $region | ConvertFrom-JSON
 
                             ForEach ($FSx in $FSxSystems.FileSystems) {
                                 $FileSystemId = $FileSystemType = $StorageCapacity = $StorageType = $Tags = $FileSystemName = ""
@@ -3112,7 +3134,7 @@ Function Main
                                             LogActivity "** INFO: Exported FSx CW Metric $metric : $FileSystemId" $False
                                         }
 
-                                        $FSxVolumes = aws fsx describe-volumes --filters "Name=file-system-id,Values=$FileSystemId" --no-paginate --region $region | ConvertFrom-JSON -Depth 10
+                                        $FSxVolumes = aws fsx describe-volumes --filters "Name=file-system-id,Values=$FileSystemId" --no-paginate --region $region | ConvertFrom-JSON 
                                         ForEach ($FSxVolume in $FSxVolumes.Volumes) {
                                             $FileSystemId = $VolumeId = $VolumeType = ""
                                             $FileSystemId = $FSxVolume.FileSystemId
