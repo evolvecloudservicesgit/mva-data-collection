@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.20
+# Version: 1.0.21
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -94,7 +94,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.20"
+        $Version = "1.0.21"
 
         Return $Version 
     } CATCH {
@@ -1796,22 +1796,39 @@ Function ValidateServerConnectivity()
     )
     TRY {
         $Pass = $True
-        $sql = "SELECT TOP 1 @@SERVERNAME AS SQLInstance, name FROM [master].[sys].[databases]"
+        $sql = "SELECT TOP 1 name FROM [master].[sys].[databases] WHERE name = 'master'"
 
         ForEach ($item in $EC2InstanceIds) {
             IF (!([string]::IsNullOrWhiteSpace($item))) {
                 $output = ''
+                $namePass = $False
+                $ipPass = $False
                 TRY {
-                    $output = (Invoke-Sql -ServerInstance ($InstanceIdDetails."$item").split('|')[0]  -Database 'master' -Query $sql) 
-                    IF (!([string]::IsNullOrWhiteSpace($output))) { 
+                    ## Try AWS DNS first, then name
+                    $output = (Invoke-Sql -ServerInstance ($InstanceIdDetails."$item").split('|')[0]  -Database 'master' -Query $sql -Timeout 15 -RaiseError $False) 
+                    IF ($output.name -eq 'master') {
+                        $ipPass = $True
+                    } Else {
+                        $output = (Invoke-Sql -ServerInstance ($InstanceIdDetails."$item").split('|')[1]  -Database 'master' -Query $sql -Timeout 15 -RaiseError $False) 
+                        IF ($output.name -eq 'master') {
+                            $namePass = $True
+                        } 
+                    }
+                        
+                    IF ($namePass -or $ipPass) { 
                         IF ($ValidateResourcesOnly) { LogActivity "** INFO: EC2 InstanceId $item SQL Connectivity has been validated" $True } ELSE { LogActivity "** INFO: EC2 InstanceId $item SQL Connectivity has been validated" $False }          
-                        $global:AllServers += ($InstanceIdDetails."$item").split('|')[0]
-                        $global:AllServersByIp += GetServerIP -Server ($InstanceIdDetails."$item").split('|')[0]
+                        IF ($ipPass) { 
+                            $global:AllServers += ($InstanceIdDetails."$item").split('|')[0] 
+                            $global:AllServersByIp += GetServerIP -Server ($InstanceIdDetails."$item").split('|')[0]
+                        } Else { 
+                            $global:AllServers += ($InstanceIdDetails."$item").split('|')[1]
+                            $global:AllServersByIp += GetServerIP -Server ($InstanceIdDetails."$item").split('|')[1]
+                        }
                     } Else {
                         $Pass = $False
                         LogActivity "** ERROR: Unable to Connect to SQL Instance $item : SQL Connectivity has failed validation" $True
                         LogActivity "** ERROR: Unable to Connect to SQL Instance $item : SQL Connectivity has failed validation : $error" $False
-                    }
+                    }                            
                 } CATCH {
                     $Pass = $False
                     IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
@@ -1825,7 +1842,7 @@ Function ValidateServerConnectivity()
             IF (!([string]::IsNullOrWhiteSpace($item))) {
                 $output = ''
                 TRY {
-                    $output = (Invoke-Sql -ServerInstance $RdsDetails."$item".split("|")[0] -Database 'master' -Query $sql) 
+                    $output = (Invoke-Sql -ServerInstance $RdsDetails."$item".split("|")[0] -Database 'master' -Query $sql -Timeout 15) 
                     IF (!([string]::IsNullOrWhiteSpace($output))) { 
                         IF ($ValidateResourcesOnly) { LogActivity "** INFO: RDS Instance $item SQL Connectivity has been validated" $True } ELSE { LogActivity "** INFO: RDS Instance $item SQL Connectivity has been validated" $False }
                         $global:AllServers += $RdsDetails."$item".split("|")[0]
@@ -1847,8 +1864,9 @@ Function ValidateServerConnectivity()
         ForEach ($item in $EC2Servers) {
             IF (!([string]::IsNullOrWhiteSpace($item))) {
                 $output = ''
+                
                 TRY {
-                    $output = (Invoke-Sql -ServerInstance $item  -Database 'master' -Query $sql) 
+                    $output = (Invoke-Sql -ServerInstance $item  -Database 'master' -Query $sql -Timeout 15) 
                     IF (!([string]::IsNullOrWhiteSpace($output))) { 
                         IF ( ( $global:AllServersByIp -contains (GetServerIP -Server $item))  -and (!($item -like '*\*' ))  ) {     
                             LogActivity "** INFO: Duplicate Entry Found: Skipping SQL Data Collection for $item" $True  
@@ -1938,18 +1956,26 @@ Function Exit_Script
 Function Invoke-Sql
 {
     param( 
-        [Parameter(Mandatory=$false)] [String] $ServerInstance,
-        [Parameter(Mandatory=$false)] [String] $Database = 'master',
-        [Parameter(Mandatory=$false)] [String] $Query
+        [Parameter(Mandatory=$false)] [String]  $ServerInstance,
+        [Parameter(Mandatory=$false)] [String]  $Database = 'master',
+        [Parameter(Mandatory=$false)] [String]  $Query,
+        [Parameter(Mandatory=$false)] [Int]     $Timeout,
+        [Parameter(Mandatory=$false)] [Boolean] $RaiseError = $True
      )
     TRY {
         $table = $Null
 
+        IF ($Timeout -gt 0) {
+            $ConnectionTimeout = $Timeout
+        } Else {
+            $ConnectionTimeout = $SqlServerConnectionTimeout
+        }
+
         $conn = New-Object System.Data.SqlClient.SqlConnection
         If ([string]::IsNullOrWhiteSpace($SqlUser)) {
-            $conn.ConnectionString = "Server=$ServerInstance;Database=$Database;Integrated Security=true;TrustServerCertificate=True;Connection Timeout=$SqlServerConnectionTimeout"
+            $conn.ConnectionString = "Server=$ServerInstance;Database=$Database;Integrated Security=true;TrustServerCertificate=True;Connection Timeout=$ConnectionTimeout"
         } Else {
-            $conn.ConnectionString = "Server=$ServerInstance;Database=$Database;User ID='$SqlUser';Password='$SqlPassword';TrustServerCertificate=True;Connection Timeout=$SqlServerConnectionTimeout"
+            $conn.ConnectionString = "Server=$ServerInstance;Database=$Database;User ID='$SqlUser';Password='$SqlPassword';TrustServerCertificate=True;Connection Timeout=$ConnectionTimeout"
         }
         $conn.Open()
 
@@ -1969,8 +1995,13 @@ Function Invoke-Sql
         IF ($ErrorMsg -eq 'SQLServerAgent is not currently running so it cannot be notified of this action.') {
             LogActivity "** INFO: SQL Agent is not running on $ServerInstance : CollectConnections Job will not run" $True
         } Else {
-            LogActivity "** ERROR: Invoke-Sql() : $ServerInstance : $ErrorMsg" $False
-            Exit_Script -ErrorRaised $True
+            IF ($RaiseError) {
+                LogActivity "** ERROR: Invoke-Sql() : $ServerInstance : $ErrorMsg" $False
+                Exit_Script -ErrorRaised $True
+            } Else {
+                LogActivity "** ERROR: Invoke-Sql() : $ServerInstance : $ErrorMsg" $False
+                Return $ErrorMsg
+            }
         }
     }
 }
@@ -2108,26 +2139,33 @@ Function FormatServerName()
     }
 } 
 
-Function ScriptVersionCheck()
+Function InternetCheck()
 {
     TRY {
-
         $Internet = $False
-
-        $Url = "https://api.github.com/repos/evolvecloudservicesgit/mva-data-collection/releases/latest"
-
         TRY {
             $response = Invoke-WebRequest -Uri "http://www.msftconnecttest.com/connecttest.txt" -UseBasicParsing -TimeoutSec 5
             IF ($response.StatusCode -eq 200) {
                 $Internet = $True
-                LogActivity "** INFO: Checking Internet Connectivity - Passed" $True 
+                LogActivity "** INFO: Checking Internet Connectivity - Passed" $false 
             }
         } CATCH {
             $Internet = $False
             LogActivity "** INFO: Checking Internet Connectivity - No Access Found" $True 
-        }        
+        }    
+        Return $Internet
+    } CATCH {
+        IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
+        LogActivity "** ERROR: ScriptVersionCheck() : $ErrorMsg" $True
+    }
+} 
 
-        IF ($Internet) {
+Function ScriptVersionCheck()
+{
+    TRY {
+        $Url = "https://api.github.com/repos/evolvecloudservicesgit/mva-data-collection/releases/latest"  
+
+        IF (InternetCheck) {
             $CurrentScriptVersion = GetVersion
             $LatestScriptVersion = (Invoke-RestMethod -Uri $Url).name
 
@@ -2144,16 +2182,15 @@ Function ScriptVersionCheck()
                 }   
             }   
             Else {
-                LogActivity "** INFO: Version Check - Passed" $True 
+                LogActivity "** INFO: MVA-Data-Collection.ps1 Version Check - Passed" $True 
             }      
         }
         Else {
-            LogActivity "** INFO: Version Check - Unable to Check Latest Version" $True 
+            LogActivity "** INFO: MVA-Data-Collection.ps1 Version Check - Unable to Check Latest Version" $True 
         }
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
         LogActivity "** ERROR: ScriptVersionCheck() : $ErrorMsg" $True
-        
     }
 } 
 
@@ -2202,7 +2239,6 @@ Function PowerShellVersionCheck()
 {
     TRY {
         $PSVersion = $PSVersionTable.PSVersion.Major.ToString() + "." + $PSVersionTable.PSVersion.Minor.ToString()
-        $PSEdition
 
         IF ($PSVersion -lt 5.1) {
             LogActivity "** ALERT: This version of PowerShell ($PSVersion) is below the supported build of 5.1 or above. Please update PowerShell to 5.1 or higher" $True
@@ -2349,27 +2385,33 @@ Function Main
                         Exit_Script -ErrorRaised $True
                     }
                 } Else {
-                    IF ($IsWindows) {  
-                        LogActivity "** INFO: AWS CLI Not Installed - this is a Required Object" $True
-                        LogActivity "** INFO: Beginning AWS CLI Install" $True
-                        
-                        $installerUrl = "https://awscli.amazonaws.com/AWSCLIV2.msi"
-                        $installerPath = "$ScriptRoot\AWSCLIV2.msi"
+                    IF (InternetCheck) {
+                        IF ($IsWindows) {  
+                            LogActivity "** INFO: AWS CLI Not Installed - this is a Required Object" $True
+                            LogActivity "** INFO: Beginning AWS CLI Install" $True
+                            
+                            $installerUrl = "https://awscli.amazonaws.com/AWSCLIV2.msi"
+                            $installerPath = "$ScriptRoot\AWSCLIV2.msi"
 
-                        Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
-                        Start-Process msiexec.exe -Wait -ArgumentList "/i `"$installerPath`" /qn"
-                        Remove-Item $installerPath -Force
-                        LogActivity "** INFO: AWS CLI Install Complete - Please Restart Session" $True
-                        Exit_Script -ErrorRaised $False
-                    } ElseIf ($IsMacOS) {
-                        LogActivity "** INFO: AWS CLI Not Installed - this is a Required Object" $True
-                        LogActivity "** INFO: Beginning AWS CLI Install" $True   
+                            Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
+                            Start-Process msiexec.exe -Wait -ArgumentList "/i `"$installerPath`" /qn"
+                            Remove-Item $installerPath -Force
+                            LogActivity "** INFO: AWS CLI Install Complete - Please Restart Session" $True
+                            Exit_Script -ErrorRaised $False
+                        } ElseIf ($IsMacOS) {
+                            LogActivity "** INFO: AWS CLI Not Installed - this is a Required Object" $True
+                            LogActivity "** INFO: Beginning AWS CLI Install" $True   
 
-                        curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
-                        sudo installer -pkg AWSCLIV2.pkg -target /
-                        LogActivity "** INFO: AWS CLI Install Complete - Please Restart Session" $True
-                        Exit_Script -ErrorRaised $False                        
-                    }
+                            curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
+                            sudo installer -pkg AWSCLIV2.pkg -target /
+                            LogActivity "** INFO: AWS CLI Install Complete - Please Restart Session" $True
+                            Exit_Script -ErrorRaised $False                        
+                        }
+                    } 
+                    Else {
+                        LogActivity "** ERROR: Unable to Complete AWS CLI Install due to no Internet Access - Please Manually Install AWS CLI" $True
+                        Exit_Script -ErrorRaised $True                              
+                    }                    
                 }
             }
         } CATCH {
@@ -2655,7 +2697,6 @@ Function Main
 
         ## Install DacPac Utility
         IF ($ExportDacPacs -eq $True) { 
-
             TRY {
                 $SqlpackagePath = FormatString -InputString $("$DefaultScriptRoot\Dacpac")
 
@@ -2664,8 +2705,14 @@ Function Main
                     IF (!(test-path $SqlpackagePath)) { New-Item -ItemType Directory -Force -Path $SqlpackagePath | Out-Null }
 
                     IF ($IsWindows) {
-                        Invoke-WebRequest -Uri "https://aka.ms/sqlpackage-windows" -Outfile $(FormatString -InputString $("$SqlpackagePath\sqlpackage.zip"))
-                        Expand-Archive -Path $(FormatString -InputString $("$SqlpackagePath\sqlpackage.zip")) -DestinationPath $(FormatString -InputString $("$SqlpackagePath\"))
+                        IF (InternetCheck) {
+                            Invoke-WebRequest -Uri "https://aka.ms/sqlpackage-windows" -Outfile $(FormatString -InputString $("$SqlpackagePath\sqlpackage.zip"))
+                            Expand-Archive -Path $(FormatString -InputString $("$SqlpackagePath\sqlpackage.zip")) -DestinationPath $(FormatString -InputString $("$SqlpackagePath\"))
+                        } 
+                        Else {
+                            LogActivity "** ERROR: Unable to Download DacPac due to no Internet Access - Please manually stage sqlpackage.exe at $SqlpackagePath\" $True
+                            Exit_Script -ErrorRaised $True                              
+                        }
                     } ElseIf ($IsMacOS -or $IsLinux) {
                         LogActivity "** ERROR: DacPac Export on MacOS not supported - Please contact Evolve for assistance" $True
                         Exit_Script -ErrorRaised $True                        
