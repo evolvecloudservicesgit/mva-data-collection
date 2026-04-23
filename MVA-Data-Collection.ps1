@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.21
+# Version: 1.0.22
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -94,7 +94,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.21"
+        $Version = "1.0.22"
 
         Return $Version 
     } CATCH {
@@ -3146,7 +3146,7 @@ Function Main
                                         }
                 
                                         LogActivity "** INFO: FSx Generation : $FSxGen Detected" $False
-                                        $FSxMetricsSum = ("NetworkSentBytes,NetworkReceivedBytes,DataReadBytes,DataWriteBytes,DataReadOperations,DataWriteOperations,MetadataOperations,DataReadOperationTime,DataWriteOperationTime,DiskReadBytes,DiskWriteBytes,DiskReadOperations,DiskWriteOperation").split(",")
+                                        $FSxMetricsSum = ("NetworkSentBytes,NetworkReceivedBytes,DataReadBytes,DataWriteBytes,DataReadOperations,DataWriteOperations,MetadataOperations,DataReadOperationTime,DataWriteOperationTime,DiskReadBytes,DiskWriteBytes,DiskReadOperations,DiskWriteOperations").split(",")
                                         ForEach ($FSxMetricSum in $FSxMetricsSum) {
                                             $metric = ($FSxMetricSum).Trim()
                                             ForEach ($i in 0..$CloudWatchCollectionPeriod) {
