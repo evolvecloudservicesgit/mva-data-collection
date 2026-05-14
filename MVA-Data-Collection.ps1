@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.22
+# Version: 1.0.23
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -94,7 +94,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.22"
+        $Version = "1.0.23"
 
         Return $Version 
     } CATCH {
@@ -2156,7 +2156,8 @@ Function InternetCheck()
         Return $Internet
     } CATCH {
         IF ($_.Exception.Message -eq '') { $ErrorMsg = $_ } else { $ErrorMsg = $_.Exception.Message }
-        LogActivity "** ERROR: ScriptVersionCheck() : $ErrorMsg" $True
+        LogActivity "** INFO: Checking Internet Connectivity - No Access Found" $True 
+        Return $False
     }
 } 
 
@@ -2663,9 +2664,9 @@ Function Main
         $TsqlInclude = $Null
         $DatabaseTSQL = "SELECT [name] FROM [master].[sys].[databases] 
                     WHERE source_database_id IS NULL 
-                        and [name] NOT IN('model','tempdb','master','msdb','distribution','ssisdb','rdsadmin','MVA-Data-Collection') 
-                        and [name] NOT LIKE '%ReportServer%' 
-                        and state_desc = 'ONLINE' " 
+                        AND LOWER([name]) NOT IN('model','tempdb','master','msdb','distribution','ssisdb','rdsadmin','mva-data-collection') 
+                        AND LOWER([name]) NOT LIKE '%reportserver%' 
+                        AND state_desc = 'ONLINE' " 
 
         ForEach ($Filter in $DatabaseFilter) {
             IF (!([string]::IsNullOrWhiteSpace($Filter))) {  
@@ -2869,7 +2870,21 @@ Function Main
 
                         ## SSRS Metrics
                         TRY {
-                            $sql = "SELECT [name] FROM [master].[sys].[databases] WHERE [name] LIKE '%ReportServer%' AND NOT [name] LIKE '%TempDB' AND state_desc = 'ONLINE'"
+                            $sql = "WITH ReportServerDatabases AS (
+                                        SELECT name AS DatabaseName
+                                        FROM sys.databases
+                                        WHERE LOWER(name) LIKE '%reportserver%' AND LOWER(name) NOT LIKE '%tempdb%' 
+                                        AND state_desc = 'ONLINE'
+                                    ),
+                                    AccessCheck AS (
+                                        SELECT
+                                            DatabaseName,
+                                            HAS_PERMS_BY_NAME(DatabaseName, 'DATABASE', 'SELECT') AS has_select
+                                        FROM ReportServerDatabases
+                                    )
+                                    SELECT DatabaseName
+                                    FROM AccessCheck
+                                    WHERE has_select = 1;"
                             [System.Array]$SSRSDatabases = (Invoke-Sql -ServerInstance $Server -Database 'master' -Query $sql) 
 
                             ForEach ($Database in $SSRSDatabases.name) {
@@ -2887,7 +2902,8 @@ Function Main
 
                         ## SSIS Metrics
                         TRY {
-                            $sql = "SELECT [name] FROM [master].[sys].[databases] WHERE [name] = 'SSISDB' AND state_desc = 'ONLINE'"
+                            $sql = "IF (SELECT HAS_PERMS_BY_NAME('SSISDB', 'DATABASE', 'SELECT')) = 1
+                                SELECT [name] FROM [master].[sys].[databases] WHERE [name] = 'SSISDB' AND state_desc = 'ONLINE'"
                             [System.Array]$SSISDatabase = (Invoke-Sql -ServerInstance $Server -Database 'master' -Query $sql) 
 
                             ForEach ($Database in $SSISDatabase.name) {
