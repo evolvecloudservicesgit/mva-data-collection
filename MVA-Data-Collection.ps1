@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.23
+# Version: 1.0.24
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -30,6 +30,8 @@
 #   -CollectConnectionsOnly {default is false}
 #     This creates the CollectConnections Agent Job and runs a data collection against the 
 #     [Connections] table the Agent Job CollectConnections is compiling
+#   -AMAOnly {default is false}
+#     This executes the AMA Only data collection
 #   -ExportDacPacs {default is false}
 #     This will create a schema only .dacpac for all user databases
 #   -ExportPath {default is ''}
@@ -65,6 +67,7 @@
 #   ./MVA-Data-Collection.ps1 -CollectCloudWatchData -ExportPath 'C:\Temp\'
 #   ./MVA-Data-Collection.ps1 -CollectTsqlData -UseSSOLogin -AWSProfile 'MyProfileName'
 #   ./MVA-Data-Collection.ps1 -CollectConnectionsOnly 
+#   ./MVA-Data-Collection.ps1 -AMAOnly -SqlUser 'myusername' -SqlPassword 'mypassword'
 #   ./MVA-Data-Collection.ps1 -CleanUpEnvironment 
 #
 ##########################################################################################################################
@@ -74,6 +77,7 @@ param(
     [Parameter(Mandatory=$false)] [switch] $ExportDacPacs = $false,
     [Parameter(Mandatory=$false)] [switch] $CollectCloudWatchData = $false,
     [Parameter(Mandatory=$false)] [switch] $CollectTsqlData = $false,
+    [Parameter(Mandatory=$false)] [switch] $AMAOnly = $false,    
     [Parameter(Mandatory=$false)] [switch] $CleanUpEnvironment = $false,
     [Parameter(Mandatory=$false)] [int]    $SqlServerConnectionTimeout = 5,   
     [Parameter(Mandatory=$false)] [int]    $SqlServerQueryTimeout = 300,      
@@ -94,7 +98,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.23"
+        $Version = "1.0.24"
 
         Return $Version 
     } CATCH {
@@ -1398,10 +1402,73 @@ Function LoadTSqlArray()
         }    
         
         ## 49 sys_database_files
-        IF (($SqlVersion).SubString(0,2) -in("10","11","12","13","14","15","16","17")) {  
-            $global:TsqlDatabase.Add("49.001~[sys_database_files]","SELECT @@SERVERNAME AS SQLInstance, '@@@@' AS dbName, * 
+        IF (($SqlVersion).SubString(0,2) -in("10","11","12","13")) {  
+            $global:TsqlDatabase.Add("49.001~[sys_database_files]","SELECT @@SERVERNAME AS SQLInstance, '@@@@' AS dbName, 
+                    [file_id],
+                    [file_guid],
+                    [type],
+                    [type_desc],
+                    [data_space_id],
+                    [name],
+                    [physical_name],
+                    [state],
+                    [state_desc],
+                    [size],
+                    [max_size],
+                    [growth],
+                    [is_media_read_only],
+                    [is_read_only],
+                    [is_sparse],
+                    [is_percent_growth],
+                    [is_name_reserved],
+                    NULL AS [is_persistent_log_buffer],
+                    [create_lsn],
+                    [drop_lsn],
+                    [read_only_lsn],
+                    [read_write_lsn],
+                    [differential_base_lsn],
+                    [differential_base_guid],
+                    [differential_base_time],
+                    [redo_start_lsn],
+                    [redo_start_fork_guid],
+                    [redo_target_lsn],
+                    [redo_target_fork_guid],
+                    [backup_lsn]
                 FROM [sys].[database_files];")   
-        }            
+        } ELSEIF (($SqlVersion).SubString(0,2) -in("14","15","16","17")) {  
+            $global:TsqlDatabase.Add("49.002~[sys_database_files]","SELECT @@SERVERNAME AS SQLInstance, '@@@@' AS dbName,
+                    [file_id],
+                    [file_guid],
+                    [type],
+                    [type_desc],
+                    [data_space_id],
+                    [name],
+                    [physical_name],
+                    [state],
+                    [state_desc],
+                    [size],
+                    [max_size],
+                    [growth],
+                    [is_media_read_only],
+                    [is_read_only],
+                    [is_sparse],
+                    [is_percent_growth],
+                    [is_name_reserved],
+                    [is_persistent_log_buffer],
+                    [create_lsn],
+                    [drop_lsn],
+                    [read_only_lsn],
+                    [read_write_lsn],
+                    [differential_base_lsn],
+                    [differential_base_guid],
+                    [differential_base_time],
+                    [redo_start_lsn],
+                    [redo_start_fork_guid],
+                    [redo_target_lsn],
+                    [redo_target_fork_guid],
+                    [backup_lsn]
+                FROM [sys].[database_files];")  
+        } 
         
         ## Transactional Replication Specific Queries
         $global:TsqlReplicatedDatabase = @{}
@@ -2261,6 +2328,7 @@ Function Main
         [Parameter(Mandatory=$false)] [bool]   $ExportDacPacs,
         [Parameter(Mandatory=$false)] [bool]   $CollectCloudWatchData,
         [Parameter(Mandatory=$false)] [bool]   $CollectTsqlData,
+        [Parameter(Mandatory=$false)] [bool]   $AMAOnly,
         [Parameter(Mandatory=$false)] [bool]   $CleanUpEnvironment,
         [Parameter(Mandatory=$false)] [int]    $SqlServerConnectionTimeout,   
         [Parameter(Mandatory=$false)] [int]    $SqlServerQueryTimeout,     
@@ -2356,6 +2424,7 @@ Function Main
         LogActivity "** INFO: Parameter - ExportDacPacs: $ExportDacPacs" $False
         LogActivity "** INFO: Parameter - CollectCloudWatchData: $CollectCloudWatchData" $False
         LogActivity "** INFO: Parameter - CollectTsqlData: $CollectTsqlData" $False
+        LogActivity "** INFO: Parameter - AMAOnly: $AMAOnly" $False        
         LogActivity "** INFO: Parameter - CleanUpEnvironment: $CleanUpEnvironment" $False
         LogActivity "** INFO: Parameter - SqlServerConnectionTimeout: $SqlServerConnectionTimeout" $False
         LogActivity "** INFO: Parameter - SqlServerQueryTimeout: $SqlServerQueryTimeout" $False
@@ -2489,21 +2558,30 @@ Function Main
             $ExportDacPacs = $False
             $CollectTsqlData = $False
             $CollectCloudWatchData = $False
+            $AMAOnly = $False
         } ElseIf ($CollectConnectionsOnly) {
             LogActivity "** INFO: CollectConnectionsOnly Selected : Disabling all other collections" $True
             $ExportDacPacs = $False
             $CollectTsqlData = $False
-            $CollectCloudWatchData = $False    
+            $CollectCloudWatchData = $False
+            $AMAOnly = $False  
         } ElseIf ($ValidateResourcesOnly) {
             LogActivity "** INFO: ValidateResourcesOnly Selected : Disabling all other collections" $True
             $ExportDacPacs = $False
             $CollectTsqlData = $False
+            $CollectCloudWatchData = $False
+            $AMAOnly = $False
+        } ElseIf ($AMAOnly) {
+            If ( ($AMAOnly) -and ([string]::IsNullOrWhiteSpace($RdsInstances)) -and ([string]::IsNullOrWhiteSpace($EC2InstanceIds)) ) {
+                LogActivity "** ERROR: AMA Collection Requested But No RDS/EC2 Instances Provided" $True
+                Exit_Script -ErrorRaised $True  
+            }          
+            LogActivity "** INFO: AMA Only Selected : Disabling all other collections" $True
+            $ExportDacPacs = $True
+            $CollectTsqlData = $False
             $CollectCloudWatchData = $False   
         } ElseIf ( ($CollectCloudWatchData) -and ( ([string]::IsNullOrWhiteSpace($FSxFileSystems)) -and ([string]::IsNullOrWhiteSpace($RdsInstances)) -and ([string]::IsNullOrWhiteSpace($EC2InstanceIds)) ) ) {
             LogActivity "** ERROR: CollectCloudWatchData Selected : No AWS Resources Provided" $True
-            Exit_Script -ErrorRaised $True
-        } ElseIf ( (!($CollectCloudWatchData)) -and (!($ExportDacPacs)) -and (!($CollectTsqlData)) ) {
-            LogActivity "** ERROR: No Collection Parameters Provided" $True
             Exit_Script -ErrorRaised $True
         } ElseIf ( $UseSSOLogin -and (!([string]::IsNullOrWhiteSpace($AWSProfile))) ) {        
             LogActivity "** ERROR: SSO Login Selected but No Profile Provided" $True
@@ -3401,6 +3479,7 @@ TRY {
         -ExportDacPacs $ExportDacPacs                           `
         -CollectCloudWatchData $CollectCloudWatchData           `
         -CollectTsqlData $CollectTsqlData                       `
+        -AMAOnly $AMAOnly                                       `
         -CleanUpEnvironment $CleanUpEnvironment                 `
         -SqlServerConnectionTimeout $SqlServerConnectionTimeout `
         -SqlServerQueryTimeout $SqlServerQueryTimeout           `
@@ -3420,6 +3499,7 @@ TRY {
     #     -ExportDacPacs $false `
     #     -CollectCloudWatchData $false `
     #     -CollectTsqlData $false `
+    #     -AMAOnly $false `
     #     -CleanUpEnvironment $false `
     #     -SqlServerConnectionTimeout 300 `
     #     -SqlServerQueryTimeout 5 `
