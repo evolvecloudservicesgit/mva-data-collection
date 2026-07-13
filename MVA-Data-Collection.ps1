@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.24
+# Version: 1.0.25
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -1291,6 +1291,24 @@ Function LoadTSqlArray()
             $global:TsqlInstance.Add("48.005~[sys_dm_os_sys_info]","
             SELECT @@SERVERNAME AS SQLInstance, * FROM [sys].[dm_os_sys_info]")
         }    
+
+        ## 50 sys.dm_os_volume_stats
+        IF (($SqlVersion).SubString(0,2) -in("11","12","13","14","15","16","17")) {  
+            $global:TsqlInstance.Add("50.001~[sys_dm_os_volume_stats]","SELECT DISTINCT @@SERVERNAME AS SQLInstance, 
+                    DB_NAME(mf.database_id) AS dbName,
+                    mf.type_desc AS file_type,
+                    mf.physical_name,
+                    vs.volume_mount_point,
+                    vs.logical_volume_name,
+                    CAST(vs.total_bytes / 1073741824.0 AS decimal(18,2)) AS volume_total_gb,
+                    CAST(vs.available_bytes / 1073741824.0 AS decimal(18,2)) AS volume_free_gb,
+                    CAST(
+                        100.0 * vs.available_bytes / NULLIF(vs.total_bytes, 0)
+                        AS decimal(6,2)
+                    ) AS volume_free_percent
+                FROM sys.master_files AS mf
+                CROSS APPLY sys.dm_os_volume_stats(mf.database_id, mf.file_id) AS vs")   
+        } 
 
         #############################
         ## Database Specific Queries
@@ -2767,7 +2785,7 @@ Function Main
                     $DatabaseTSQL = $DatabaseTSQL + " and [name] NOT IN" + $TsqlFilter + " " 
                 }
             } ELSE {
-                LogActivity "** ERROR: Database Filter must include INCLUDE or EXCLUDE tag" $True
+                LogActivity "** ERROR: Database Filter must be in format 'database:INCLUDE;mydb;' or 'database:EXCLUDE;mydb;'" $True
                 Exit_Script -ErrorRaised $True                
             }
         } 
@@ -2922,6 +2940,20 @@ Function Main
                         $global:TsqlInstance.GetEnumerator() | ForEach-Object {
                             ExportData $Server $_.Key $_.Value 
                         }
+
+                        ## Loop Run for Perf Counters
+                        $NumberOfLoops = 2
+                        $Loop = 0
+                        $Perf = $global:TsqlInstance.GetEnumerator() |
+                            Where-Object { $_.Name -eq '44.001~[sys_dm_os_performance_counters]' } |
+                            Select-Object -First 1
+
+                        DO {
+                            ExportData $Server $Perf.Key $Perf.Value 
+                            LogActivity "** INFO: 60s Loop Collection for dm_os_performance_counters : $Server" $True
+                            Start-Sleep -Seconds 60
+                            $Loop = $Loop + 1
+                        } WHILE ($Loop -lt $NumberOfLoops)                 
 
                         TRY {
                             [System.Array]$Databases = (Invoke-Sql -ServerInstance $Server -Database 'master' -Query $DatabaseTSQL)
