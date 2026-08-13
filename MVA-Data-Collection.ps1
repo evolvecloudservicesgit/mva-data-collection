@@ -5,7 +5,7 @@
 # Website: www.evolvecloudservices.com
 # Email:   pekins@evolvecloudservices.com
 #
-# Version: 1.0.25
+# Version: 1.0.26
 #
 # Copyright © 2025 Evolve Cloud Services, LLC. or its affiliates. All Rights Reserved.
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
@@ -98,7 +98,7 @@ Function GetVersion()
 {
     TRY {
      
-        $Version = "1.0.24"
+        $Version = "1.0.26"
 
         Return $Version 
     } CATCH {
@@ -1801,17 +1801,24 @@ Function ValidateRdsInfo()
                         }
                     }
                     IF ( (!([string]::IsNullOrWhiteSpace($output))) -and ( (($output | ConvertFrom-JSON).DBInstances.DBInstanceIdentifier) -eq $rds )) { 
+                        $DBInstanceIdentifier = ($output | ConvertFrom-JSON).DBInstances.DBInstanceIdentifier
+                        $RdsEndPoint = ($output | ConvertFrom-JSON).DBInstances.Endpoint.Address
+                        $RdsPort = ($output | ConvertFrom-JSON).DBInstances.Endpoint.Port  
+
                         IF ( ($output | ConvertFrom-JSON).DBInstances.Engine -like "sqlserver*") { 
-                            $DBInstanceIdentifier = ($output | ConvertFrom-JSON).DBInstances.DBInstanceIdentifier
-                            $RdsEndPoint = ($output | ConvertFrom-JSON).DBInstances.Endpoint.Address
-                            $RdsPort = ($output | ConvertFrom-JSON).DBInstances.Endpoint.Port
+                            # $DBInstanceIdentifier = ($output | ConvertFrom-JSON).DBInstances.DBInstanceIdentifier
+                            # $RdsEndPoint = ($output | ConvertFrom-JSON).DBInstances.Endpoint.Address
+                            # $RdsPort = ($output | ConvertFrom-JSON).DBInstances.Endpoint.Port
                             IF (!([string]::IsNullOrWhiteSpace($RdsEndPoint))) {
                                 $RdsDetails.Add($DBInstanceIdentifier, "$RdsEndPoint|$RdsPort")
-                                IF ($ValidateResourcesOnly) { LogActivity "** INFO: RDS Node $rds has been validated" $True } ELSE { LogActivity "** INFO: RDS Node $rds has been validated" $False }
+                                IF ($ValidateResourcesOnly) { LogActivity "** INFO: RDS SQL Server Node $rds has been validated" $True } ELSE { LogActivity "** INFO: RDS SQL Server Node $rds has been validated" $False }
                             } Else {
                                 $Pass = $False
-                                LogActivity "** ERROR: RDS Node $rds has failed validation : No Endpoint detected" $True
+                                LogActivity "** ERROR: RDS Node $rds has failed validation : No Endpoint detected" $True                                
                             }
+                        } ElseIF ( ($output | ConvertFrom-JSON).DBInstances.Engine -like "mariadb*") {
+                            $RdsDetails.Add($DBInstanceIdentifier, "$RdsEndPoint|$RdsPort")
+                            IF ($ValidateResourcesOnly) { LogActivity "** INFO: RDS mariaDB Node $rds has been validated" $True } ELSE { LogActivity "** INFO: RDS MariaDB Node $rds has been validated" $False }                            
                         } Else {
                             $Pass = $False
                             LogActivity "** ERROR: RDS Node $rds is not a SQL Server Instance and has failed validation" $True
@@ -3422,7 +3429,7 @@ Function Main
                                             $DBParameterGroupName = $RDSInstance.DBParameterGroups.DBParameterGroupName
                                             $oFileCustomParameterGroup = FormatString -InputString $("$ScriptRoot\Export\$datestamp\$FormattedServer\CPG-$DBParameterGroupName.json")
 
-                                            $CustomParameterGroup = aws rds describe-db-parameters --db-parameter-group-name DBParameterGroupName --region $region
+                                            $CustomParameterGroup = aws rds describe-db-parameters --db-parameter-group-name $DBParameterGroupName --region $region
                                             $CustomParameterGroup | Out-File $oFileCustomParameterGroup -encoding UTF8
                                         }
 
@@ -3477,6 +3484,69 @@ Function Main
                                             }
                                             LogActivity "** INFO: Exported RDS CW Metric $metric : $DBInstanceIdentifier" $False
                                         }
+                                    } Else {
+                                        $oFileRDSConfig = FormatString -InputString $("$ScriptRoot\Export\$datestamp\$FormattedServer\RDS-$DBInstanceIdentifier.json")
+                                        ($RDSInstance | ConvertTo-JSON -Depth 4) | Out-File $oFileRDSConfig -encoding UTF8
+
+                                        IF (-not $RDSInstance.DBParameterGroups.DBParameterGroupName.StartsWith("default.")) {
+                                            $DBParameterGroupName = $RDSInstance.DBParameterGroups.DBParameterGroupName
+                                            $oFileCustomParameterGroup = FormatString -InputString $("$ScriptRoot\Export\$datestamp\$FormattedServer\CPG-$DBParameterGroupName.json")
+
+                                            $CustomParameterGroup = aws rds describe-db-parameters --db-parameter-group-name $DBParameterGroupName --region $region
+                                            $CustomParameterGroup | Out-File $oFileCustomParameterGroup -encoding UTF8
+                                        }
+
+                                        $RDSMetricsSum = ("ReadThroughput,WriteThroughput,ReadIOPS,WriteIOPS,ReadLatency,WriteLatency").split(",")
+                                        ForEach ($RDSMetricSum in $RDSMetricsSum) {
+                                            $metric = ($RDSMetricSum).Trim()
+                                            ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                                [datetime]$eTime =  (Get-Date).ToUniversalTime().AddDays(($i*-1))
+                                                [datetime]$sTime =  $eTime.AddDays(-1)
+                                                $Data = (aws cloudwatch get-metric-statistics --namespace AWS/RDS --metric-name $metric --dimensions "Name=DBInstanceIdentifier,Value=$DBInstanceIdentifier" --start-time $sTime.ToString("yyyy-MM-ddTHH:mm:ssZ") --end-time $eTime.ToString("yyyy-MM-ddTHH:mm:ssZ") --period 300 --statistics Sum --region $region) | ConvertFrom-JSON
+                                                ForEach($d in $Data.Datapoints){
+                                                    $timeStamp = ""
+                                                    $timeStamp = $d.TimeStamp
+                                                    $SumValue = $d.Sum
+                                                    '"'+$DBInstanceIdentifier+'"|"'+$DBEngine+'"|"'+$timeStamp+'"|"'+$metric+'"|"'+0+'"|"'+0+'"|"'+$SumValue+'"' | Out-File $oFileRDS -Append -encoding UTF8
+                                                }
+                                            }
+                                            LogActivity "** INFO: Exported RDS CW Metric $metric : $DBInstanceIdentifier" $False
+                                        }
+
+                                        $RDSMetricsAvgMax = ("DatabaseConnections,CPUUtilization").split(",")
+                                        ForEach ($RDSMetricAvgMax in $RDSMetricsAvgMax) {                                
+                                            $metric = ($RDSMetricAvgMax).Trim()
+                                            ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                                [datetime]$eTime =  (Get-Date).ToUniversalTime().AddDays(($i*-1))
+                                                [datetime]$sTime =  $eTime.AddDays(-1)
+                                                $Data = (aws cloudwatch get-metric-statistics --namespace AWS/RDS --metric-name $metric --dimensions "Name=DBInstanceIdentifier,Value=$DBInstanceIdentifier" --start-time $sTime.ToString("yyyy-MM-ddTHH:mm:ssZ") --end-time $eTime.ToString("yyyy-MM-ddTHH:mm:ssZ") --period 300 --statistics Average Maximum --region $region) | ConvertFrom-JSON
+                                                ForEach($d in $Data.Datapoints){
+                                                    $timeStamp = ""
+                                                    $timeStamp = $d.TimeStamp
+                                                    $AvgValue = $d.Average
+                                                    $MaxValue = $d.Maximum
+                                                    '"'+$DBInstanceIdentifier+'"|"'+$DBEngine+'"|"'+$timeStamp+'"|"'+$metric+'"|"'+$AvgValue+'"|"'+$MaxValue+'"|"'+0+'"' | Out-File $oFileRDS -Append -encoding UTF8
+                                                }
+                                            }
+                                            LogActivity "** INFO: Exported RDS CW Metric $metric : $DBInstanceIdentifier" $False
+                                        }
+
+                                        $RDSMetricsMax = ("NetworkReceiveThroughput,NetworkTransmitThroughput").split(",")
+                                        ForEach ($RDSMetricMax in $RDSMetricsMax) {     
+                                            $metric = ($RDSMetricMax).Trim()
+                                            ForEach ($i in 0..$CloudWatchCollectionPeriod) {
+                                                [datetime]$eTime =  (Get-Date).ToUniversalTime().AddDays(($i*-1))
+                                                [datetime]$sTime =  $eTime.AddDays(-1)
+                                                $Data = (aws cloudwatch get-metric-statistics --namespace AWS/RDS --metric-name $metric --dimensions "Name=DBInstanceIdentifier,Value=$DBInstanceIdentifier" --start-time $sTime.ToString("yyyy-MM-ddTHH:mm:ssZ") --end-time $eTime.ToString("yyyy-MM-ddTHH:mm:ssZ") --period 300 --statistics Maximum --region $region) | ConvertFrom-JSON
+                                                ForEach($d in $Data.Datapoints){
+                                                    $timeStamp = ""
+                                                    $timeStamp = $d.TimeStamp
+                                                    $MaxValue = $d.Maximum
+                                                    '"'+$DBInstanceIdentifier+'"|"'+$DBEngine+'"|"'+$timeStamp+'"|"'+$metric+'"|"'+0+'"|"'+$MaxValue+'"|"'+0+'"' | Out-File $oFileRDS -Append -encoding UTF8
+                                                }
+                                            }
+                                            LogActivity "** INFO: Exported RDS CW Metric $metric : $DBInstanceIdentifier" $False
+                                        }                                        
                                     }
                                 }
                             }
