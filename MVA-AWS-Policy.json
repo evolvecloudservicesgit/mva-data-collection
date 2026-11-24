@@ -10,6 +10,7 @@
 				"ec2:DescribeVolumes",				
 				"rds:DescribeDBInstances",
 				"cloudwatch:GetMetricStatistics",
+				"cloudwatch:GetMetricData",
 				"fsx:DescribeFileSystems",
 				"fsx:DescribeVolumes",
 				"fsx:DescribeStorageVirtualMachines"				

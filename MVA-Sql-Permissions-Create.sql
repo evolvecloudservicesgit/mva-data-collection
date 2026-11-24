@@ -21,6 +21,8 @@ BEGIN
 
 	GRANT SELECT ON [dbo].[sysjobs] TO [mva_user];
 	EXEC sp_addrolemember 'SQLAgentOperatorRole', [mva_user];
+	-- Amazon RDS: msdb tables other than sysjobs cannot be selected from. The Agent job export reads steps, schedules, operators and the rest through
+	-- the msdb.dbo.sp_help_* procedures instead, which SQLAgentOperatorRole (above) allows.
 
 	EXEC sp_MSforeachdb '
 	USE [?];
@@ -71,6 +73,15 @@ BEGIN
 	GRANT SELECT ON [dbo].[sysjobschedules] TO [mva_user];
 	GRANT SELECT ON [dbo].[sysjobsteps] TO [mva_user];
 	GRANT SELECT ON [dbo].[syscategories] TO [mva_user];
+	GRANT SELECT ON [dbo].[sysoperators] TO [mva_user];
+	GRANT SELECT ON [dbo].[sysjobservers] TO [mva_user];
+	GRANT SELECT ON [dbo].[sysproxies] TO [mva_user];
+	GRANT SELECT ON [dbo].[sysproxylogin] TO [mva_user];
+	GRANT SELECT ON [dbo].[sysproxysubsystem] TO [mva_user];
+	GRANT SELECT ON [dbo].[sysalerts] TO [mva_user];
+
+	-- Only needed when a job step runs under a proxy (the proxy section reads sys.credentials). It is a broad permission, so it is NOT granted here: without it sys.credentials returns no rows, the proxy is left out of the job script and a '-- !! NOT SCRIPTED: proxy ...' line says so.
+	-- GRANT ALTER ANY CREDENTIAL TO [mva_user];
 
 	EXEC sp_MSforeachdb '
 	USE [?];
